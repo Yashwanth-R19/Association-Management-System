@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script>
+        // Check if user is authenticated
+        if (!sessionStorage.getItem('isAuthenticated')) {
+            window.location.href = 'login.html';
+        }
+        </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Management - Ceebros Gardens</title>
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <link href="css/styles.css" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <div class="branding">
+                <h1>Ceebros<span>Gardens</span></h1>
+                <p class="tagline">Association Management System</p>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="login.html">Login</a></li>
+                    <li><a href="residents.html">Residents</a></li>
+                    <li><a href="association.html">Association</a></li>
+                    <li><a href="meetings.html">Meetings</a></li>
+                    <li><a href="facility-tracking.html">Facilities</a></li>
+                    <li><a href="vendor-management.html">Vendors</a></li>
+                    <li><a href="staff-management.html" class="active">Staff</a></li>
+                    <li class="user-menu">
+                        <a href="profile.html" class="user-link">
+                            <span class="user-name">Admin</span>
+                            <i class="user-icon"></i>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="screen-header">
+            <h2 class="feature-title">Staff Management</h2>
+            <div>
+                <button class="btn btn-primary" id="checkInBtn">Check In</button>
+                <button class="btn btn-warning" id="checkOutBtn">Check Out</button>
+            </div>
+        </div>
+
+        <div class="search-container">
+            <div class="form-group">
+                <input type="text" id="staffSearchInput" class="form-control" placeholder="Search by staff name...">
+            </div>
+            <div class="form-group">
+                <button id="searchStaffBtn" class="btn btn-primary">Search</button>
+                <button id="resetStaffSearchBtn" class="btn btn-outline">Reset</button>
+            </div>
+        </div>
+
+        <div class="form-panel" id="checkInFormPanel">
+            <h3 class="form-title">Staff Check In</h3>
+            <form id="checkInForm">
+                <div class="form-row">
+                    <div class="form-col">
+                        <div class="form-group">
+                            <label for="staffName">Staff Name</label>
+                            <input type="text" id="staffName" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="staffWage">Wage Per Hour ($)</label>
+                            <input type="number" id="staffWage" class="form-control" step="0.01" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group" style="text-align: right;">
+                    <button type="submit" class="btn btn-primary">Check In</button>
+                    <button type="button" class="btn btn-outline" id="cancelCheckInBtn">Cancel</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="form-panel" id="checkOutFormPanel">
+            <h3 class="form-title">Staff Check Out</h3>
+            <form id="checkOutForm">
+                <div class="form-row">
+                    <div class="form-col">
+                        <div class="form-group">
+                            <label for="checkOutStaffName">Staff Name</label>
+                            <input type="text" id="checkOutStaffName" class="form-control" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group" style="text-align: right;">
+                    <button type="submit" class="btn btn-warning">Check Out</button>
+                    <button type="button" class="btn btn-outline" id="cancelCheckOutBtn">Cancel</button>
+                </div>
+            </form>
+        </div>
+
+
+        <div class="screen-header" style="margin-top: 2rem;">
+            <h3 class="feature-title">Today's Attendance</h3>
+            <button class="btn btn-danger" id="deleteStaffBtn">Delete Staff</button>
+        </div>
+
+        <div class="table-container">
+            <table class="data-table" id="attendanceTable">
+                <thead>
+                    <tr>
+                        <th>Staff Name</th>
+                        <th>Check In Time</th>
+                        <th>Check Out Time</th>
+                        <th>Hours Worked</th>
+                        <th>Wage Per Hour</th>
+                        <th>Earnings</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Attendance data will be loaded here -->
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <script src="js/staff-management.js"></script>
+</body>
+</html>

@@ -1,0 +1,4 @@
+username,password_hash,role
+admin,17062,admin
+secretary,42182,staff
+president,11830,admin

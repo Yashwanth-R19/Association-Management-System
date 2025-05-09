@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>
+        // Check if user is authenticated
+        if (!sessionStorage.getItem('isAuthenticated')) {
+            window.location.href = 'login.html';
+        }
+        </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vendor Management - Ceebros Gardens</title>
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <link href="css/styles.css" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <div class="branding">
+                <h1>Ceebros<span>Gardens</span></h1>
+                <p class="tagline">Resident Management System</p>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="login.html">Login</a></li>
+                    <li><a href="dashboard.html">Dashboard</a></li>
+                    <li><a href="residents.html">Residents</a></li>
+                    <li><a href="association.html">Association</a></li>
+                    <li><a href="meetings.html">Meetings</a></li>
+                    <li><a href="facility-tracking.html">Facilities</a></li>
+                    <li><a href="vendor-management.html" class="active">Vendors</a></li>
+                    <li><a href="staff-management.html">Staff</a></li>
+                    <li class="user-menu">
+                        <a href="profile.html" class="user-link">
+                            <span class="user-name">Admin</span>
+                            <i class="user-icon"></i>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="screen-header">
+            <h2 class="feature-title">Vendor Management</h2>
+            <button class="btn btn-primary" id="addVendorBtn">
+                Add Vendor
+            </button>
+        </div>
+
+        <div class="search-container">
+            <div class="form-group">
+                <input type="text" id="vendorSearchInput" class="form-control" placeholder="Search by vendor ID or name...">
+            </div>
+            <div class="form-group">
+                <button id="searchVendorBtn" class="btn btn-primary">Search</button>
+                <button id="resetVendorSearchBtn" class="btn btn-outline">Reset</button>
+                <button id="showMinCostBtn" class="btn btn-info">Show Minimum Cost Vendor</button>
+            </div>
+        </div>
+
+        <div class="form-panel" id="vendorFormPanel">
+            <h3 id="vendorFormTitle" class="form-title">Add New Vendor</h3>
+            <form id="vendorForm">
+                <div class="form-row">
+                    <div class="form-col">
+                        <div class="form-group">
+                            <label for="vendorId">Vendor ID</label>
+                            <input type="text" id="vendorId" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="vendorName">Vendor Name</label>
+                            <input type="text" id="vendorName" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="vendorPhone">Phone</label>
+                            <input type="tel" id="vendorPhone" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="form-col">
+                        <div class="form-group">
+                            <label for="vendorEmail">Email</label>
+                            <input type="email" id="vendorEmail" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="vendorWork">Work Description</label>
+                            <input type="text" id="vendorWork" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="vendorCost">Cost</label>
+                            <input type="number" id="vendorCost" class="form-control" step="0.01" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-col">
+                        <div class="form-group">
+                            <label for="vendorStartDate">Start Date</label>
+                            <input type="date" id="vendorStartDate" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="form-col">
+                        <div class="form-group">
+                            <label for="vendorEndDate">End Date</label>
+                            <input type="date" id="vendorEndDate" class="form-control" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group" style="text-align: right;">
+                    <button type="submit" class="btn btn-primary">Save Vendor</button>
+                    <button type="button" class="btn btn-outline" id="cancelVendorBtn">Cancel</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="table-container">
+            <table class="data-table" id="vendorTable">
+                <thead>
+                    <tr>
+                        <th>Vendor ID</th>
+                        <th>Name</th>
+                        <th>Work Description</th>
+                        <th>Phone</th>
+                        <th>Email</th>
+                        <th>Cost</th>
+                        <th>Contract Period</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Vendor data will be loaded here -->
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <script src="vendor.js"></script>
+</body>
+</html>

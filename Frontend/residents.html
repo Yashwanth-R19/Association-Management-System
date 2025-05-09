@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script>
+        // Check both sessionStorage and server-side session
+        if (!sessionStorage.getItem('isAuthenticated')) {
+            // Verify with server
+            fetch('/api/check-auth')
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.authenticated) {
+                        window.location.href = 'login.html';
+                    }
+                })
+                .catch(() => {
+                    window.location.href = 'login.html';
+                });
+        }
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Residents - Ceebros Gardens</title>
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <link href="css/styles.css" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <div class="branding">
+                <h1>Ceebros<span>Gardens</span></h1>
+                <p class="tagline">Association Management System</p>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="login.html">Login</a></li>
+                    <li><a href="residents.html" class="active">Residents</a></li>
+                    <li><a href="association.html">Association</a></li>
+                    <li><a href="meetings.html">Meetings</a></li>
+                    <li><a href="facility-tracking.html">Facilities</a></li>
+                    <li><a href="vendor-management.html">Vendors</a></li>
+                    <li><a href="staff-management.html">Staff</a></li>
+                    <li class="user-menu">
+                        <a href="profile.html" class="user-link">
+                            <span class="user-name">Admin</span>
+                            <i class="user-icon"></i>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="screen-header">
+            <h2 class="feature-title">Resident Directory</h2>
+            <button class="btn btn-primary" id="addResidentBtn">
+                <i class="icon-plus"></i> Add Resident
+            </button>
+        </div>
+
+        <div class="search-container">
+            <div class="form-group">
+                <select id="searchType" class="form-control">
+                    <option value="door">By Door Number</option>
+                    <option value="phone">By Phone Number</option>
+                    <option value="name">By Name</option>
+                    <option value="unpaid">Unpaid Maintenance</option>
+                    <option value="block">By Block</option>
+                    <option value="floor">By Floor</option>
+                </select>
+            </div>
+            <div class="form-group" id="searchInputGroup">
+                <input type="text" id="searchInput" class="form-control" placeholder="Enter search term...">
+            </div>
+            <div class="form-group" id="blockSelectGroup" style="display:none;">
+                <select id="blockSelect" class="form-control">
+                    <option value="">Select Block</option>
+                    <option value="MAYFLOWER">Mayflower</option>
+                    <option value="TULIP">Tulip</option>
+                    <option value="PRIMROSE">Primrose</option>
+                    <option value="DAFFODIL">Daffodil</option>
+                    <option value="ORCHID">Orchid</option>
+                    <option value="SUNFLOWER">Sunflower</option>
+                </select>
+            </div>
+            <div class="form-group" id="floorSelectGroup" style="display:none;">
+                <select id="floorSelect" class="form-control">
+                    <option value="">Select Floor</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                </select>
+            </div>
+            <button id="searchBtn" class="btn btn-primary">Search</button>
+            <button id="resetSearchBtn" class="btn btn-outline">Reset</button>
+        </div>
+
+        <div class="form-panel" id="residentFormPanel" style="display:none;">
+            <h3 id="formTitle" class="form-title">Add New Resident</h3>
+            <form id="residentForm">
+                <div class="form-row">
+                    <div class="form-col">
+                        <div class="form-group">
+                            <label for="name">Full Name</label>
+                            <input type="text" id="name" class="form-control" required>
+                            <small class="form-text">Only letters and spaces (max 49 characters)</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="block">Block</label>
+                            <select id="block" class="form-control" required>
+                                <option value="">Select Block</option>
+                                <option value="MAYFLOWER">Mayflower</option>
+                                <option value="TULIP">Tulip</option>
+                                <option value="PRIMROSE">Primrose</option>
+                                <option value="DAFFODIL">Daffodil</option>
+                                <option value="ORCHID">Orchid</option>
+                                <option value="SUNFLOWER">Sunflower</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-col">
+                        <div class="form-group">
+                            <label for="floor">Floor (1-7)</label>
+                            <input type="number" id="floor" class="form-control" min="1" max="7" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="doorAlpha">Door Alphabet (A-Z)</label>
+                            <input type="text" id="doorAlpha" class="form-control" pattern="[A-Za-z]{1}" title="Single letter (A-Z)" required>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-col">
+                        <div class="form-group">
+                            <label for="contact">Contact (10 digits)</label>
+                            <input type="tel" id="contact" class="form-control" pattern="[0-9]{10}" title="10-digit number" required>
+                        </div>
+                    </div>
+                    <div class="form-col">
+                        <div class="form-group">
+                            <label for="ownership">Ownership</label>
+                            <select id="ownership" class="form-control" required>
+                                <option value="">Select</option>
+                                <option value="OWNER">Owner</option>
+                                <option value="TENANT">Tenant</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-col">
+                        <div class="form-group">
+                            <label for="parking">Parking Slot</label>
+                            <input type="text" id="parking" class="form-control">
+                        </div>
+                    </div>
+                    <div class="form-col">
+                        <div class="form-group">
+                            <label for="maintenance">Maintenance Status</label>
+                            <select id="maintenance" class="form-control" required>
+                                <option value="">Select</option>
+                                <option value="PAID">Paid</option>
+                                <option value="UNPAID">Unpaid</option>
+                                <option value="PARTIAL">Partial</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group" style="text-align: right;">
+                    <button type="submit" class="btn btn-primary">Save Resident</button>
+                    <button type="button" class="btn btn-outline" id="cancelResidentBtn">Cancel</button>
+                </div>
+                <input type="hidden" id="residentId">
+            </form>
+        </div>
+
+        <!-- ... (previous code remains exactly the same until the table) ... -->
+
+<div class="table-container">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Door Number</th>
+                <th>Name</th>
+                <th>Contact</th>
+                <th>Ownership</th>
+                <th>Parking</th>
+                <th>Maintenance</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="residentTable">
+        </tbody>
+    </table>
+</div>
+    </main>
+
+    <script src="js/residents.js"></script>
+</body>
+</html>

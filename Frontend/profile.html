@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script>
+        if (!sessionStorage.getItem('isAuthenticated')) {
+            window.location.href = 'login.html';
+        }
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - Ceebros Gardens</title>
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <link href="css/styles.css" rel="stylesheet">
+    <style>
+        .profile-details {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 300px;
+        }
+        </style>        
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <div class="branding">
+                <h1>Ceebros<span>Gardens</span></h1>
+                <p class="tagline">Association Management System</p>
+            </div>
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="login.html">Login</a></li>
+                    <li><a href="residents.html">Residents</a></li>
+                    <li><a href="association.html">Association</a></li>
+                    <li><a href="meetings.html">Meetings</a></li>
+                    <li><a href="facility-tracking.html">Facilities</a></li>
+                    <li><a href="vendor-management.html">Vendors</a></li>
+                    <li><a href="staff-management.html">Staff</a></li>
+                    <li class="user-menu">
+                        <a href="profile.html" class="active user-link">
+                            <span class="user-name" id="navUserName">User</span>
+                            <i class="user-icon"></i>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="profile-container">
+            <div class="profile-details">
+                <div class="profile-card" style="text-align: center;">
+                    <div class="profile-avatar">
+                        <img id="profileImage" src="https://images.pexels.com/photos/8296970/pexels-photo-8296970.jpeg?cs=srgb&dl=pexels-mikhail-nilov-8296970.jpg&fm=jpg" alt="Pfp">
+                    </div>               
+                    <h2 id="profile-name">admin</h2>
+                    <p id="profile-role">Admin</p>
+                    <p id="profile-joined">Joined: January 2018</p>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

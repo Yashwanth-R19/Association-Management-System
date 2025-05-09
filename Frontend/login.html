@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Login - Ceebros Gardens</title>
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <link href="css/styles.css" rel="stylesheet">
+    <style>
+        main.container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex: 1;
+            height: calc(100vh - var(--header-height));
+        }
+
+        .login-container {
+            width: 400px;
+            background-color: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .login-container .logo {
+            font-family: 'Merriweather', serif;
+            font-size: 2.4rem;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        .login-container h2 {
+            font-family: 'Merriweather', serif;
+            font-size: 1.3rem;
+            color: var(--secondary-color);
+            margin-bottom: 1.5rem;
+        }
+
+        #loginForm {
+            width: 100%;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .show-password {
+            display: flex;
+            align-items: center;
+            margin-top: -0.5rem;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            color: var(--text-color);
+        }
+
+        .show-password input[type="checkbox"] {
+            margin-right: 0.5rem;
+        }
+
+        .btn.btn-block {
+            width: 100%;
+            margin-top: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <div class="branding">
+                <h1>Ceebros<span>Gardens</span></h1>
+                <p class="tagline">Association Management System</p>
+            </div>
+            <nav>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="login-container">
+            <div class="logo">CG</div>
+            <h2 align="center">Association Management Portal Login</h2>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="name">Username</label>
+                    <input type="text" id="name" class="form-control" required />
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" class="form-control" required />
+                </div>
+                <div class="show-password">
+                    <input type="checkbox" id="togglePassword" />
+                    <label for="togglePassword">Show Password</label>
+                </div>
+                <button type="submit" class="btn btn-block">Login</button>
+            </form>
+        </div>
+    </main>
+
+    <script src="js/main.js"></script>
+    <script src="js/login.js"></script>
+    <script>
+        // Toggle show/hide password
+        document.getElementById('togglePassword').addEventListener('change', function () {
+            const passwordInput = document.getElementById('password');
+            passwordInput.type = this.checked ? 'text' : 'password';
+        });
+    </script>
+</body>
+</html>

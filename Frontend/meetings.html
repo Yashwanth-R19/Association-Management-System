@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script>
+        // Check if user is authenticated
+        if (!sessionStorage.getItem('isAuthenticated')) {
+            window.location.href = 'login.html';
+        }
+        </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meetings - Ceebros Gardens</title>
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <link href="css/styles.css" rel="stylesheet">
+    <style>
+        /* Additional styles for improved layout */
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .action-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .search-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .table-responsive {
+            overflow-x: auto;
+        }
+        .detail-row {
+            margin-bottom: 12px;
+        }
+        .detail-label {
+            font-weight: 600;
+            display: inline-block;
+            width: 100px;
+        }
+        .modal-content {
+            max-width: 700px;
+            width: 90%;
+        }
+        @media (max-width: 768px) {
+            .action-bar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .search-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <div class="branding">
+                <h1>Ceebros<span>Gardens</span></h1>
+                <p class="tagline">Association Management System</p>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="login.html">Login</a></li>
+                    <li><a href="residents.html">Residents</a></li>
+                    <li><a href="association.html">Association</a></li>
+                    <li><a href="meetings.html" class="active">Meetings</a></li>
+                    <li><a href="facility-tracking.html">Facilities</a></li>
+                    <li><a href="vendor-management.html">Vendors</a></li>
+                    <li><a href="staff-management.html">Staff</a></li>
+                    <li class="user-menu">
+                        <a href="profile.html" class="user-link">
+                            <span class="user-name">Admin</span>
+                            <i class="user-icon"></i>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="main-content">
+            <div class="screen-header">
+                <h2 class="feature-title">Meeting Records</h2>
+            </div>
+
+            <div class="action-bar">
+                <button class="btn btn-primary" id="addMeetingBtn">
+                    <i class="icon-plus"></i> Schedule Meeting
+                </button>
+                
+                <div class="search-group">
+                    <select id="searchType" class="form-control">
+                        <option value="date">Date</option>
+                        <option value="agenda">Agenda</option>
+                        <option value="attendee">Attendee</option>
+                        <option value="outcome">Outcome</option>
+                    </select>
+                    <input type="text" id="searchKeyword" class="form-control" placeholder="Search meetings...">
+                    <button class="btn btn-secondary" id="searchBtn">Search</button>
+                    <button class="btn btn-outline" id="resetSearchBtn">Reset</button>
+                </div>
+            </div>
+
+            <div class="form-panel" id="meetingForm" style="display:none;">
+                <h3 class="form-title">Schedule New Meeting</h3>
+                <form id="meetingFormActual">
+                    <div class="form-row">
+                        <div class="form-col">
+                            <div class="form-group">
+                                <label for="meetingDate">Date</label>
+                                <input type="date" id="meetingDate" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="form-col">
+                            <div class="form-group">
+                                <label for="meetingTime">Time</label>
+                                <input type="time" id="meetingTime" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="form-col">
+                            <div class="form-group">
+                                <label for="meetingLocation">Location</label>
+                                <input type="text" id="meetingLocation" class="form-control" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="meetingTitle">Meeting Title</label>
+                        <input type="text" id="meetingTitle" class="form-control" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="meetingAgenda">Agenda</label>
+                        <textarea id="meetingAgenda" class="form-control" rows="3" required></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="attendees">Attendees</label>
+                        <textarea id="attendees" class="form-control" rows="2" placeholder="Enter names separated by commas"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="outcome">Expected Outcome</label>
+                        <textarea id="outcome" class="form-control" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Save Meeting</button>
+                        <button type="button" class="btn btn-outline" id="cancelMeetingBtn">Cancel</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Title</th>
+                            <th>Location</th>
+                            <th>Agenda Preview</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="meetingTable">
+                        <!-- Meetings will be populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Meeting Details Modal -->
+        <div class="modal" id="meetingDetailsModal" style="display:none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="modalMeetingTitle"></h3>
+                    <span class="close-modal">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <div class="detail-row">
+                        <span class="detail-label">Date:</span>
+                        <span id="modalMeetingDate"></span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Time:</span>
+                        <span id="modalMeetingTime"></span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Location:</span>
+                        <span id="modalMeetingLocation"></span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Agenda:</span>
+                        <p id="modalMeetingAgenda" class="modal-text"></p>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Attendees:</span>
+                        <p id="modalMeetingAttendees" class="modal-text"></p>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Outcome:</span>
+                        <p id="modalMeetingOutcome" class="modal-text"></p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-danger" id="deleteMeetingBtn">
+                        <i class="icon-trash"></i> Delete Meeting
+                    </button>
+                    <button class="btn btn-outline close-modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/main.js"></script>
+    <script src="js/meetings.js"></script>
+</body>
+</html>
