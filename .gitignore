@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Compiled C binaries
+# Developers must compile from source with gcc
+*.exe
+*.o
+*.a
+*.so
+*.dll
+
+# Runtime data files (not tracked; CSV schema only)
+server/data/*.csv
+!server/data/.gitkeep
+
+# Temporary/working files
+temp.csv
+*.tmp
+*.swp
+*.swo
+*~
+
+# IDE and editor files
+.vscode/
+.idea/
+*.code-workspace
+*.sublime-project
+*.sublime-workspace
+.DS_Store
+Thumbs.db
+
+# OS-specific
+.env.local
+.env.*.local
+
+# Build artifacts
+build/
+dist/
+*.log
+BUILD.md
+CLAUDE.md
+CONTRIBUTING.md
+REPO_SETUP.md
+LICENSE

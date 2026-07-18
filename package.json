@@ -1,0 +1,29 @@
+{
+  "name": "association-management-system",
+  "version": "1.0.0",
+  "description": "A comprehensive web-based platform for managing residential association operations including residents, members, vendors, staff, facilities, and meetings.",
+  "main": "server/app.js",
+  "scripts": {
+    "start": "node server/app.js",
+    "dev": "node server/app.js",
+    "test": "echo \"No tests configured yet\" && exit 0"
+  },
+  "keywords": [
+    "association",
+    "residential",
+    "management",
+    "residents",
+    "facilities",
+    "meetings"
+  ],
+  "author": "SSN College of Engineering",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "express-session": "^1.19.0"
+  }
+}
+

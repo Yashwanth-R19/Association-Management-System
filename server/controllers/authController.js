@@ -3,9 +3,11 @@ const path = require('path');
 
 exports.handleLogin = (req, res) => {
     const { username, password } = req.body;
-    const loginProgram = path.join(__dirname, '../../Backend/auth/login.exe');
-    
-    exec(`"${loginProgram}" "${username}" "${password}"`, 
+    const loginProgram = path.join(__dirname, '../c-executables/login');
+    const projectRoot = path.resolve(path.join(__dirname, '../../'));
+    console.log(`[Login] __dirname=${__dirname}, projectRoot=${projectRoot}, loginProgram=${loginProgram}`);
+
+    exec(`"${loginProgram}" "${username}" "${password}"`, { cwd: projectRoot },
         (error, stdout, stderr) => {
             console.log('C Program Output:', stdout); // Debug log
             

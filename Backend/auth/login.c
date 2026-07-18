@@ -8,8 +8,8 @@
 #include <io.h>
 #endif
 
-#define USERS_FILE "C:/Users/HP/OneDrive/Desktop/Yashwanth/ceebros-gardens/server/data/users.csv"
-#define SESSIONS_FILE "C:/Users/HP/OneDrive/Desktop/Yashwanth/ceebros-gardens/server/data/sessions.csv"
+#define USERS_FILE "C:/Users/HP/Yash-P/Association-Management-System/server/data/users.csv"
+#define SESSIONS_FILE "C:/Users/HP/Yash-P/Association-Management-System/server/data/sessions.csv"
 
 unsigned int simple_hash(const char *str) {
     unsigned int hash = 0;
@@ -69,12 +69,13 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+
     char *username = argv[1];
     char *password = argv[2];
     unsigned int stored_hash;
 
     unsigned int input_hash = simple_hash(password);
-    
+
     if (read_user_hash(username, &stored_hash)) {
         if (input_hash == stored_hash) {
             char time_now[50];

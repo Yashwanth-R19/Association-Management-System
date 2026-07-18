@@ -28,6 +28,12 @@ app.use(session({
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use((req, res, next) => {
+    if (req.path.includes('login')) {
+        require('fs').appendFileSync('debug.log', `[middleware] ${req.method} ${req.path}\n`);
+    }
+    next();
+});
 app.use(express.static(path.join(__dirname, '../Frontend')));
 app.use('/api/association', associationRoutes);
 app.use('/api/meetings', meetingsRoutes);
@@ -70,33 +76,6 @@ app.get('/login.html', (req, res) => {
     res.sendFile(path.join(__dirname, '../Frontend/login.html'));
 });
 
-// Login endpoint
-app.post('/api/login', (req, res) => {
-    const { username, password } = req.body;
-    const loginExe = path.join(__dirname, 'c-executables/login');
-    
-    exec(`"${loginExe}" "${username}" "${password}"`, (error, stdout, stderr) => {
-        if (error) {
-            return res.status(401).json({ success: false, message: 'Login failed' });
-        }
-        
-        try {
-            const result = JSON.parse(stdout);
-            if (result.status === 'success') {
-                req.session.user = {
-                    username,
-                    role: result.role,
-                    loggedInAt: new Date()
-                };
-                result.success = true;
-                result.redirect = '/residents.html';
-            }
-            res.json(result);
-        } catch (e) {
-            res.status(500).json({ success: false, message: 'Server error' });
-        }
-    });
-});
 
 // Auth check endpoint
 app.get('/api/check-auth', (req, res) => {
