@@ -25,12 +25,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     sessionStorage.setItem('username', data.username);
                     window.location.href = data.redirect || '/residents.html';
                 } else {
-                    alert(data.message || 'Login failed');
+                    showToast(data.message || 'Login failed', 'error');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Login failed. Please try again.');
+                showToast('Login failed. Please try again.', 'error');
             })
             .finally(() => {
                 submitBtn.disabled = false;

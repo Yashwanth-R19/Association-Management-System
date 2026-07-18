@@ -1,0 +1,43 @@
+# Local/dev stack: the app container + a throwaway Postgres. In production,
+# point DATABASE_URL at your Supabase project instead of the `postgres`
+# service below (and drop the postgres service entirely).
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: association_management
+    # 5433 on the host, not 5432 — many Windows/Mac dev machines already have
+    # a native Postgres install bound to 5432. The app itself never uses this
+    # host port (it talks to `postgres:5432` over the internal compose
+    # network) — this mapping only matters if you want to connect an
+    # external client like psql/pgAdmin/DBeaver from your host machine.
+    ports:
+      - '5433:5432'
+    volumes:
+      - ams-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    ports:
+      - '3000:3000'
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/association_management
+      DATABASE_SSL: 'false'
+      JWT_SECRET: ${JWT_SECRET:-dev-only-change-me}
+      PORT: 3000
+      NODE_ENV: production
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  ams-postgres-data:

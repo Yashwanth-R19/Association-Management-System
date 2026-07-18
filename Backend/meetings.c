@@ -1,43 +1,44 @@
+// Meetings module: a growable array (realloc-based vector), replacing the
+// old fixed meetings[100] cap. Stateless per-request compute engine — stdin
+// carries the current rows as CSV (id,date,time,title,agenda,location,
+// attendees[pipe-joined],outcome — no header line), one operation runs, and
+// {"result": ..., "state": [...]} is printed to stdout.
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
-#include <sys/stat.h>
 
 #define MAX_ATTENDEES 100
 #define MAX_NAME_LEN 50
-#define MAX_AGENDA_LEN 200
-#define MAX_OUTCOME_LEN 300
-#define CSV_FILE_PATH "../server/data/meeting_records.csv"
+#define MAX_FIELD_LEN 512
 
 typedef struct {
-    char date[11]; // YYYY-MM-DD
-    char time[6];  // HH:MM
+    int id;
+    char date[11];
+    char time[6];
     char title[100];
-    char agenda[MAX_AGENDA_LEN];
+    char agenda[MAX_FIELD_LEN];
     char location[100];
-    int num_attendees;
+    int numAttendees;
     char attendees[MAX_ATTENDEES][MAX_NAME_LEN];
-    char outcome[MAX_OUTCOME_LEN];
+    char outcome[MAX_FIELD_LEN];
 } Meeting;
 
-Meeting meetings[100];
+Meeting* meetings = NULL;
 int meetingCount = 0;
+int meetingCapacity = 0;
 
-void createDirectoryIfNotExists(const char *path) {
-    struct stat st = {0};
-    if (stat(path, &st) == -1) {
-        mkdir(path);
-    }
+void ensureCapacity() {
+    if (meetingCount < meetingCapacity) return;
+    meetingCapacity = meetingCapacity == 0 ? 8 : meetingCapacity * 2;
+    meetings = realloc(meetings, meetingCapacity * sizeof(Meeting));
 }
 
-void escapeJsonString(const char *input, FILE *output) {
+void escapeJsonString(const char* input, FILE* output) {
     while (*input) {
         switch (*input) {
             case '"': fputs("\\\"", output); break;
             case '\\': fputs("\\\\", output); break;
-            case '\b': fputs("\\b", output); break;
-            case '\f': fputs("\\f", output); break;
             case '\n': fputs("\\n", output); break;
             case '\r': fputs("\\r", output); break;
             case '\t': fputs("\\t", output); break;
@@ -47,248 +48,174 @@ void escapeJsonString(const char *input, FILE *output) {
     }
 }
 
-void printSuccess(const char *message) {
-    printf("{\"status\":\"success\",\"message\":\"%s\"}\n", message);
+void printMeetingJson(Meeting* m) {
+    printf("{\"id\":%d,\"date\":\"%s\",\"time\":\"%s\",\"title\":\"", m->id, m->date, m->time);
+    escapeJsonString(m->title, stdout);
+    printf("\",\"agenda\":\"");
+    escapeJsonString(m->agenda, stdout);
+    printf("\",\"location\":\"");
+    escapeJsonString(m->location, stdout);
+    printf("\",\"attendees\":[");
+    for (int j = 0; j < m->numAttendees; j++) {
+        if (j > 0) printf(",");
+        printf("\"");
+        escapeJsonString(m->attendees[j], stdout);
+        printf("\"");
+    }
+    printf("],\"outcome\":\"");
+    escapeJsonString(m->outcome, stdout);
+    printf("\"}");
 }
 
-void printError(const char *message) {
-    fprintf(stderr, "{\"status\":\"error\",\"message\":\"%s\"}\n", message);
-}
-
-void loadMeetings() {
-    createDirectoryIfNotExists("../server");
-    createDirectoryIfNotExists("../server/data");
-    
-    FILE *file = fopen(CSV_FILE_PATH, "r");
-    if (!file) {
-        file = fopen(CSV_FILE_PATH, "w");
-        if (file) {
-            fprintf(file, "date,time,title,agenda,location,num_attendees,attendees,outcome\n");
-            fclose(file);
-        }
-        return;
-    }
-
-    char line[1024];
-    if (!fgets(line, sizeof(line), file)) { // Skip header
-        fclose(file);
-        return;
-    }
-
-    while (fgets(line, sizeof(line), file)) {
-        line[strcspn(line, "\n")] = 0;
-        
-        char *token = strtok(line, ",");
-        if (!token) continue;
-        strncpy(meetings[meetingCount].date, token, 10);
-
-        token = strtok(NULL, ",");
-        if (!token) continue;
-        strncpy(meetings[meetingCount].time, token, 5);
-
-        token = strtok(NULL, ",");
-        if (!token) continue;
-        strncpy(meetings[meetingCount].title, token, 99);
-
-        token = strtok(NULL, ",");
-        if (!token) continue;
-        strncpy(meetings[meetingCount].agenda, token, MAX_AGENDA_LEN-1);
-
-        token = strtok(NULL, ",");
-        if (!token) continue;
-        strncpy(meetings[meetingCount].location, token, 99);
-
-        token = strtok(NULL, ",");
-        if (!token) continue;
-        meetings[meetingCount].num_attendees = atoi(token);
-
-        token = strtok(NULL, ",");
-        if (!token) continue;
-        char *attendee = strtok(token, "|");
-        int i = 0;
-        while (attendee && i < MAX_ATTENDEES) {
-            strncpy(meetings[meetingCount].attendees[i], attendee, MAX_NAME_LEN-1);
-            attendee = strtok(NULL, "|");
-            i++;
-        }
-        meetings[meetingCount].num_attendees = i;
-
-        token = strtok(NULL, "\n");
-        if (token) {
-            strncpy(meetings[meetingCount].outcome, token, MAX_OUTCOME_LEN-1);
-        }
-        
-        meetingCount++;
-        if (meetingCount >= 100) break;
-    }
-    fclose(file);
-}
-
-void saveMeetings() {
-    FILE *file = fopen(CSV_FILE_PATH, "w");
-    if (!file) {
-        printError("Failed to open data file for writing");
-        return;
-    }
-
-    fprintf(file, "date,time,title,agenda,location,num_attendees,attendees,outcome\n");
-    for (int i = 0; i < meetingCount; i++) {
-        fprintf(file, "%s,%s,%s,%s,%s,%d,",
-                meetings[i].date,
-                meetings[i].time,
-                meetings[i].title,
-                meetings[i].agenda,
-                meetings[i].location,
-                meetings[i].num_attendees);
-
-        for (int j = 0; j < meetings[i].num_attendees; j++) {
-            fprintf(file, "%s", meetings[i].attendees[j]);
-            if (j != meetings[i].num_attendees - 1) {
-                fprintf(file, "|");
-            }
-        }
-        fprintf(file, ",%s\n", meetings[i].outcome);
-    }
-    fclose(file);
-}
-
-void listMeetings() {
+void printAllJson() {
     printf("[");
     for (int i = 0; i < meetingCount; i++) {
         if (i > 0) printf(",");
-        printf("{\"id\":%d,\"date\":\"%s\",\"time\":\"%s\",\"title\":\"", i+1, meetings[i].date, meetings[i].time);
-        escapeJsonString(meetings[i].title, stdout);
-        printf("\",\"agenda\":\"");
-        escapeJsonString(meetings[i].agenda, stdout);
-        printf("\",\"location\":\"");
-        escapeJsonString(meetings[i].location, stdout);
-        printf("\",\"attendees\":[");
-        for (int j = 0; j < meetings[i].num_attendees; j++) {
-            if (j > 0) printf(",");
-            printf("\"");
-            escapeJsonString(meetings[i].attendees[j], stdout);
-            printf("\"");
-        }
-        printf("],\"outcome\":\"");
-        escapeJsonString(meetings[i].outcome, stdout);
-        printf("\"}");
+        printMeetingJson(&meetings[i]);
     }
-    printf("]\n");
+    printf("]");
 }
 
-void addMeeting(const char* date, const char* time, const char* title, const char* agenda, 
-                const char* location, const char* attendees, const char* outcome) {
-    if (meetingCount >= 100) {
-        printError("Maximum meetings reached");
-        return;
+// Splits on the next literal comma (never skips empty fields, unlike strtok)
+// and strips one pair of surrounding quotes if present. Mutates the buffer.
+char* nextField(char** cursor) {
+    if (!*cursor) return "";
+    char* start = *cursor;
+    char* comma = strchr(start, ',');
+    if (comma) { *comma = '\0'; *cursor = comma + 1; }
+    else { *cursor = NULL; }
+    size_t len = strlen(start);
+    if (len >= 2 && start[0] == '"' && start[len - 1] == '"') {
+        start[len - 1] = '\0';
+        start++;
     }
+    return start;
+}
 
-    strncpy(meetings[meetingCount].date, date, 10);
-    strncpy(meetings[meetingCount].time, time, 5);
-    strncpy(meetings[meetingCount].title, title, 99);
-    strncpy(meetings[meetingCount].agenda, agenda, MAX_AGENDA_LEN-1);
-    strncpy(meetings[meetingCount].location, location, 99);
-    strncpy(meetings[meetingCount].outcome, outcome, MAX_OUTCOME_LEN-1);
+// Reads stdin CSV: id,"date","time","title","agenda","location","attendee1|attendee2|...","outcome"
+void loadFromStdin() {
+    char line[2048];
+    while (fgets(line, sizeof(line), stdin)) {
+        line[strcspn(line, "\n")] = 0;
+        if (line[0] == '\0') continue;
 
-    // Process attendees
+        ensureCapacity();
+        Meeting* m = &meetings[meetingCount];
+        memset(m, 0, sizeof(Meeting));
+
+        char* cursor = line;
+        m->id = atoi(nextField(&cursor));
+        strncpy(m->date, nextField(&cursor), sizeof(m->date) - 1);
+        strncpy(m->time, nextField(&cursor), sizeof(m->time) - 1);
+        strncpy(m->title, nextField(&cursor), sizeof(m->title) - 1);
+        strncpy(m->agenda, nextField(&cursor), sizeof(m->agenda) - 1);
+        strncpy(m->location, nextField(&cursor), sizeof(m->location) - 1);
+
+        char attendeesBuf[1024];
+        strncpy(attendeesBuf, nextField(&cursor), sizeof(attendeesBuf) - 1);
+        attendeesBuf[sizeof(attendeesBuf) - 1] = '\0';
+        if (attendeesBuf[0] != '\0') {
+            char* attendee = strtok(attendeesBuf, "|");
+            int i = 0;
+            while (attendee && i < MAX_ATTENDEES) {
+                strncpy(m->attendees[i], attendee, MAX_NAME_LEN - 1);
+                attendee = strtok(NULL, "|");
+                i++;
+            }
+            m->numAttendees = i;
+        }
+
+        strncpy(m->outcome, nextField(&cursor), sizeof(m->outcome) - 1);
+
+        meetingCount++;
+    }
+}
+
+void addMeeting(int id, const char* date, const char* time, const char* title, const char* agenda,
+                const char* location, const char* attendeesCsv, const char* outcome) {
+    ensureCapacity();
+    Meeting* m = &meetings[meetingCount];
+    memset(m, 0, sizeof(Meeting));
+    m->id = id;
+    strncpy(m->date, date, sizeof(m->date) - 1);
+    strncpy(m->time, time, sizeof(m->time) - 1);
+    strncpy(m->title, title, sizeof(m->title) - 1);
+    strncpy(m->agenda, agenda, sizeof(m->agenda) - 1);
+    strncpy(m->location, location, sizeof(m->location) - 1);
+    strncpy(m->outcome, outcome, sizeof(m->outcome) - 1);
+
     char tempAttendees[1024];
-    strncpy(tempAttendees, attendees, sizeof(tempAttendees));
-    char *attendee = strtok(tempAttendees, ",");
+    strncpy(tempAttendees, attendeesCsv, sizeof(tempAttendees) - 1);
+    tempAttendees[sizeof(tempAttendees) - 1] = '\0';
+    char* attendee = strtok(tempAttendees, ",");
     int i = 0;
     while (attendee && i < MAX_ATTENDEES) {
-        strncpy(meetings[meetingCount].attendees[i], attendee, MAX_NAME_LEN-1);
+        strncpy(m->attendees[i], attendee, MAX_NAME_LEN - 1);
         attendee = strtok(NULL, ",");
         i++;
     }
-    meetings[meetingCount].num_attendees = i;
+    m->numAttendees = i;
 
     meetingCount++;
-    saveMeetings();
-    printSuccess("Meeting added successfully");
 }
 
-void deleteMeeting(int id) {
-    if (id < 1 || id > meetingCount) {
-        printError("Invalid meeting ID");
-        return;
+const char* deleteMeeting(int id) {
+    for (int i = 0; i < meetingCount; i++) {
+        if (meetings[i].id == id) {
+            for (int j = i; j < meetingCount - 1; j++) meetings[j] = meetings[j + 1];
+            meetingCount--;
+            return NULL;
+        }
     }
-
-    for (int i = id-1; i < meetingCount-1; i++) {
-        meetings[i] = meetings[i+1];
-    }
-    meetingCount--;
-    saveMeetings();
-    printSuccess("Meeting deleted successfully");
+    return "Meeting not found";
 }
 
 void searchMeetings(const char* type, const char* query) {
     printf("[");
     int count = 0;
-    
     for (int i = 0; i < meetingCount; i++) {
         bool match = false;
-        
-        if (strcmp(type, "date") == 0) {
-            match = strstr(meetings[i].date, query) != NULL;
-        } else if (strcmp(type, "agenda") == 0) {
-            match = strstr(meetings[i].agenda, query) != NULL;
-        } else if (strcmp(type, "attendee") == 0) {
-            for (int j = 0; j < meetings[i].num_attendees; j++) {
-                if (strstr(meetings[i].attendees[j], query) != NULL) {
-                    match = true;
-                    break;
-                }
+        Meeting* m = &meetings[i];
+        if (strcmp(type, "date") == 0) match = strstr(m->date, query) != NULL;
+        else if (strcmp(type, "agenda") == 0) match = strstr(m->agenda, query) != NULL;
+        else if (strcmp(type, "outcome") == 0) match = strstr(m->outcome, query) != NULL;
+        else if (strcmp(type, "attendee") == 0) {
+            for (int j = 0; j < m->numAttendees; j++) {
+                if (strstr(m->attendees[j], query)) { match = true; break; }
             }
-        } else if (strcmp(type, "outcome") == 0) {
-            match = strstr(meetings[i].outcome, query) != NULL;
         }
-        
         if (match) {
             if (count++ > 0) printf(",");
-            printf("{\"id\":%d,\"date\":\"%s\",\"time\":\"%s\",\"title\":\"", i+1, meetings[i].date, meetings[i].time);
-            escapeJsonString(meetings[i].title, stdout);
-            printf("\",\"agenda\":\"");
-            escapeJsonString(meetings[i].agenda, stdout);
-            printf("\",\"location\":\"");
-            escapeJsonString(meetings[i].location, stdout);
-            printf("\",\"attendees\":[");
-            for (int j = 0; j < meetings[i].num_attendees; j++) {
-                if (j > 0) printf(",");
-                printf("\"");
-                escapeJsonString(meetings[i].attendees[j], stdout);
-                printf("\"");
-            }
-            printf("],\"outcome\":\"");
-            escapeJsonString(meetings[i].outcome, stdout);
-            printf("\"}");
+            printMeetingJson(m);
         }
     }
-    printf("]\n");
+    printf("]");
 }
 
-int main(int argc, char *argv[]) {
-    loadMeetings();
-    
-    if (argc < 2) {
-        listMeetings();
-        return 0;
-    }
-    
-    if (strcmp(argv[1], "add") == 0 && argc == 9) {
-        addMeeting(argv[2], argv[3], argv[4], argv[5], argv[6], argv[7], argv[8]);
-    } 
-    else if (strcmp(argv[1], "delete") == 0 && argc == 3) {
-        deleteMeeting(atoi(argv[2]));
-    }
-    else if (strcmp(argv[1], "search") == 0 && argc == 4) {
+int main(int argc, char* argv[]) {
+    loadFromStdin();
+
+    printf("{\"result\":");
+
+    if (argc < 2 || strcmp(argv[1], "list") == 0) {
+        printAllJson();
+    } else if (strcmp(argv[1], "add") == 0 && argc == 10) {
+        addMeeting(atoi(argv[2]), argv[3], argv[4], argv[5], argv[6], argv[7], argv[8], argv[9]);
+        printf("{\"status\":\"success\",\"message\":\"Meeting added successfully\"}");
+    } else if (strcmp(argv[1], "delete") == 0 && argc == 3) {
+        const char* err = deleteMeeting(atoi(argv[2]));
+        if (err) printf("{\"status\":\"error\",\"message\":\"%s\"}", err);
+        else printf("{\"status\":\"success\",\"message\":\"Meeting deleted successfully\"}");
+    } else if (strcmp(argv[1], "search") == 0 && argc == 4) {
         searchMeetings(argv[2], argv[3]);
+    } else {
+        printf("{\"status\":\"error\",\"message\":\"Invalid command\"}");
     }
-    else if (strcmp(argv[1], "list") == 0) {
-        listMeetings();
-    }
-    else {
-        printError("Invalid command");
-    }
-    
+
+    printf(",\"state\":");
+    printAllJson();
+    printf("}");
+
+    free(meetings);
     return 0;
 }

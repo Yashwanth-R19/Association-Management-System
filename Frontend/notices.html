@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script>
+        (function(){try{document.documentElement.setAttribute('data-theme',localStorage.getItem('ams-theme')||'light');}catch(e){document.documentElement.setAttribute('data-theme','light');}})();
+        if (!sessionStorage.getItem('isAuthenticated')) {
+            fetch('/api/check-auth').then(function(r){return r.json();}).then(function(d){ if(!d.authenticated) window.location.href='login.html'; }).catch(function(){ window.location.href='login.html'; });
+        }
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notices - Ceebros Gardens</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&display=swap" rel="stylesheet">
+    <link href="css/styles.css" rel="stylesheet">
+</head>
+<body>
+    <div class="app">
+        <div class="app-main">
+            <main class="content">
+                <div class="screen-header">
+                    <h2 class="feature-title">Notices &amp; Announcements</h2>
+                    <button class="btn btn-primary" id="addNoticeBtn">Post Notice</button>
+                </div>
+
+                <div class="form-panel" id="noticeFormPanel" style="display:none;">
+                    <h3 class="form-title">Post New Notice</h3>
+                    <form id="noticeForm">
+                        <div class="form-group">
+                            <label for="noticeTitle">Title</label>
+                            <input type="text" id="noticeTitle" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="noticeBody">Body</label>
+                            <textarea id="noticeBody" class="form-control" rows="4" required></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label><input type="checkbox" id="noticePinned"> Pin to top</label>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">Post</button>
+                            <button type="button" class="btn btn-outline" id="cancelNoticeBtn">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div id="noticesList" class="notices-list"></div>
+            </main>
+        </div>
+    </div>
+
+    <script src="js/shell.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/notices.js"></script>
+</body>
+</html>

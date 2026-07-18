@@ -1,140 +1,143 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script>
-        // Check if user is authenticated
+    <script>
+        (function(){try{document.documentElement.setAttribute('data-theme',localStorage.getItem('ams-theme')||'light');}catch(e){document.documentElement.setAttribute('data-theme','light');}})();
         if (!sessionStorage.getItem('isAuthenticated')) {
-            window.location.href = 'login.html';
+            fetch('/api/check-auth').then(function(r){return r.json();}).then(function(d){ if(!d.authenticated) window.location.href='login.html'; }).catch(function(){ window.location.href='login.html'; });
         }
-        </script>
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vendor Management - Ceebros Gardens</title>
-    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <title>Vendors - Ceebros Gardens</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&display=swap" rel="stylesheet">
     <link href="css/styles.css" rel="stylesheet">
 </head>
 <body>
-    <header>
-        <div class="header-content">
-            <div class="branding">
-                <h1>Ceebros<span>Gardens</span></h1>
-                <p class="tagline">Resident Management System</p>
-            </div>
-            <nav>
-                <ul>
-                    <li><a href="login.html">Login</a></li>
-                    <li><a href="dashboard.html">Dashboard</a></li>
-                    <li><a href="residents.html">Residents</a></li>
-                    <li><a href="association.html">Association</a></li>
-                    <li><a href="meetings.html">Meetings</a></li>
-                    <li><a href="facility-tracking.html">Facilities</a></li>
-                    <li><a href="vendor-management.html" class="active">Vendors</a></li>
-                    <li><a href="staff-management.html">Staff</a></li>
-                    <li class="user-menu">
-                        <a href="profile.html" class="user-link">
-                            <span class="user-name">Admin</span>
-                            <i class="user-icon"></i>
-                        </a>
-                    </li>
-                </ul>
-            </nav>
-        </div>
-    </header>
+    <div class="app">
+        <div class="app-main">
+            <main class="content">
+                <div class="screen-header">
+                    <h2 class="feature-title">Vendor Management</h2>
+                    <button class="btn btn-primary" id="addVendorBtn">
+                        <i class="icon-plus"></i> Add Vendor
+                    </button>
+                </div>
 
-    <main class="container">
-        <div class="screen-header">
-            <h2 class="feature-title">Vendor Management</h2>
-            <button class="btn btn-primary" id="addVendorBtn">
-                Add Vendor
-            </button>
-        </div>
-
-        <div class="search-container">
-            <div class="form-group">
-                <input type="text" id="vendorSearchInput" class="form-control" placeholder="Search by vendor ID or name...">
-            </div>
-            <div class="form-group">
-                <button id="searchVendorBtn" class="btn btn-primary">Search</button>
-                <button id="resetVendorSearchBtn" class="btn btn-outline">Reset</button>
-                <button id="showMinCostBtn" class="btn btn-info">Show Minimum Cost Vendor</button>
-            </div>
-        </div>
-
-        <div class="form-panel" id="vendorFormPanel">
-            <h3 id="vendorFormTitle" class="form-title">Add New Vendor</h3>
-            <form id="vendorForm">
-                <div class="form-row">
-                    <div class="form-col">
-                        <div class="form-group">
-                            <label for="vendorId">Vendor ID</label>
-                            <input type="text" id="vendorId" class="form-control" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="vendorName">Vendor Name</label>
-                            <input type="text" id="vendorName" class="form-control" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="vendorPhone">Phone</label>
-                            <input type="tel" id="vendorPhone" class="form-control" required>
-                        </div>
+                <div class="search-container">
+                    <div class="form-group">
+                        <input type="text" id="vendorSearchInput" class="form-control" placeholder="Search by vendor ID or name...">
                     </div>
-                    <div class="form-col">
-                        <div class="form-group">
-                            <label for="vendorEmail">Email</label>
-                            <input type="email" id="vendorEmail" class="form-control" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="vendorWork">Work Description</label>
-                            <input type="text" id="vendorWork" class="form-control" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="vendorCost">Cost</label>
-                            <input type="number" id="vendorCost" class="form-control" step="0.01" required>
-                        </div>
+                    <div class="search-group">
+                        <button id="searchVendorBtn" class="btn btn-primary">Search</button>
+                        <button id="resetVendorSearchBtn" class="btn btn-outline">Reset</button>
+                        <button id="showMinCostBtn" class="btn btn-info">Show Minimum Cost Vendor</button>
                     </div>
                 </div>
-                <div class="form-row">
-                    <div class="form-col">
-                        <div class="form-group">
-                            <label for="vendorStartDate">Start Date</label>
-                            <input type="date" id="vendorStartDate" class="form-control" required>
-                        </div>
-                    </div>
-                    <div class="form-col">
-                        <div class="form-group">
-                            <label for="vendorEndDate">End Date</label>
-                            <input type="date" id="vendorEndDate" class="form-control" required>
-                        </div>
-                    </div>
-                </div>
-                <div class="form-group" style="text-align: right;">
-                    <button type="submit" class="btn btn-primary">Save Vendor</button>
-                    <button type="button" class="btn btn-outline" id="cancelVendorBtn">Cancel</button>
-                </div>
-            </form>
-        </div>
 
-        <div class="table-container">
-            <table class="data-table" id="vendorTable">
-                <thead>
-                    <tr>
-                        <th>Vendor ID</th>
-                        <th>Name</th>
-                        <th>Work Description</th>
-                        <th>Phone</th>
-                        <th>Email</th>
-                        <th>Cost</th>
-                        <th>Contract Period</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <!-- Vendor data will be loaded here -->
-                </tbody>
-            </table>
-        </div>
-    </main>
+                <div class="form-panel" id="vendorFormPanel" style="display:none;">
+                    <h3 id="vendorFormTitle" class="form-title">Add New Vendor</h3>
+                    <form id="vendorForm">
+                        <div class="form-row">
+                            <div class="form-col">
+                                <div class="form-group">
+                                    <label for="vendorName">Vendor Name</label>
+                                    <input type="text" id="vendorName" class="form-control" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="vendorPhone">Phone</label>
+                                    <input type="tel" id="vendorPhone" class="form-control" required>
+                                </div>
+                            </div>
+                            <div class="form-col">
+                                <div class="form-group">
+                                    <label for="vendorEmail">Email</label>
+                                    <input type="email" id="vendorEmail" class="form-control" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="vendorWork">Work Description</label>
+                                    <input type="text" id="vendorWork" class="form-control" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="vendorCost">Cost</label>
+                                    <input type="number" id="vendorCost" class="form-control" step="0.01" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-col">
+                                <div class="form-group">
+                                    <label for="vendorStartDate">Start Date</label>
+                                    <input type="date" id="vendorStartDate" class="form-control" required>
+                                </div>
+                            </div>
+                            <div class="form-col">
+                                <div class="form-group">
+                                    <label for="vendorEndDate">End Date</label>
+                                    <input type="date" id="vendorEndDate" class="form-control" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">Save Vendor</button>
+                            <button type="button" class="btn btn-outline" id="cancelVendorBtn">Cancel</button>
+                        </div>
+                    </form>
+                </div>
 
-    <script src="vendor.js"></script>
+                <div class="form-panel" id="ratingFormPanel" style="display:none;">
+                    <h3 class="form-title">Rate Vendor</h3>
+                    <form id="ratingForm">
+                        <input type="hidden" id="ratingVendorId">
+                        <div class="form-group">
+                            <label for="ratingValue">Rating (1-5)</label>
+                            <select id="ratingValue" class="form-control" required>
+                                <option value="5">5 - Excellent</option>
+                                <option value="4">4 - Good</option>
+                                <option value="3">3 - Average</option>
+                                <option value="2">2 - Below average</option>
+                                <option value="1">1 - Poor</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="ratingNote">Note</label>
+                            <input type="text" id="ratingNote" class="form-control" placeholder="Optional note about this service">
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">Submit Rating</button>
+                            <button type="button" class="btn btn-outline" id="cancelRatingBtn">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table" id="vendorTable">
+                        <thead>
+                            <tr>
+                                <th>Vendor ID</th>
+                                <th>Name</th>
+                                <th>Work Description</th>
+                                <th>Phone</th>
+                                <th>Email</th>
+                                <th>Cost</th>
+                                <th>Contract Period</th>
+                                <th>Rating</th>
+                                <th class="actions-cell">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Vendor data will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="js/shell.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/vendor-management.js"></script>
 </body>
 </html>

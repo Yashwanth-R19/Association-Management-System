@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script>
+        if (!sessionStorage.getItem('isAuthenticated')) {
+            window.location.href = 'login.html';
+        }
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maintenance Dues - Ceebros Gardens</title>
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <link href="css/styles.css" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <div class="branding">
+                <h1>Ceebros<span>Gardens</span></h1>
+                <p class="tagline">Association Management System</p>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="login.html">Login</a></li>
+                    <li><a href="residents.html">Residents</a></li>
+                    <li><a href="association.html">Association</a></li>
+                    <li><a href="meetings.html">Meetings</a></li>
+                    <li><a href="facility-tracking.html">Facilities</a></li>
+                    <li><a href="vendor-management.html">Vendors</a></li>
+                    <li><a href="staff-management.html">Staff</a></li>
+                    <li><a href="complaints.html">Complaints</a></li>
+                    <li><a href="notices.html">Notices</a></li>
+                    <li><a href="dues.html" class="active">Dues</a></li>
+                    <li class="user-menu">
+                        <a href="profile.html" class="user-link">
+                            <span class="user-name" id="navUserName">Admin</span>
+                            <i class="user-icon"></i>
+                        </a>
+                    </li>
+                    <li><a href="#" id="navLogoutLink">Log out</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="screen-header">
+            <h2 class="feature-title">Maintenance Dues</h2>
+            <div>
+                <button class="btn btn-outline" id="showUnpaidBtn">Show Unpaid Only</button>
+                <button class="btn btn-primary" id="addDueBtn">Record Due</button>
+            </div>
+        </div>
+
+        <div class="form-panel" id="dueFormPanel" style="display:none;">
+            <h3 class="form-title">Record Maintenance Due</h3>
+            <form id="dueForm">
+                <div class="form-row">
+                    <div class="form-col">
+                        <div class="form-group">
+                            <label for="dueDoorNumber">Door Number</label>
+                            <input type="text" id="dueDoorNumber" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="form-col">
+                        <div class="form-group">
+                            <label for="duePeriod">Period (YYYY-MM)</label>
+                            <input type="month" id="duePeriod" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="form-col">
+                        <div class="form-group">
+                            <label for="dueAmount">Amount</label>
+                            <input type="number" id="dueAmount" class="form-control" step="0.01" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group" style="text-align: right;">
+                    <button type="submit" class="btn btn-primary">Save</button>
+                    <button type="button" class="btn btn-outline" id="cancelDueBtn">Cancel</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="table-container">
+            <table class="data-table" id="duesTable">
+                <thead>
+                    <tr>
+                        <th>Door Number</th>
+                        <th>Resident</th>
+                        <th>Period</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Dues loaded here -->
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <script src="js/main.js"></script>
+    <script src="js/nav.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/dues.js"></script>
+</body>
+</html>

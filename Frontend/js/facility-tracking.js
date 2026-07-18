@@ -20,17 +20,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Form submission
     form.addEventListener('submit', async function(e) {
         e.preventDefault();
-        
+
         const startTime = document.getElementById('facilityStartTime').value;
         const endTime = document.getElementById('facilityEndTime').value;
-        
-        // Calculate duration in minutes
-        let duration = 0;
-        if (startTime && endTime) {
-            const start = new Date(`1970-01-01T${startTime}:00`);
-            const end = new Date(`1970-01-01T${endTime}:00`);
-            duration = Math.round((end - start) / 60000); // ms to minutes
-        }
 
         const formData = {
             residentName: document.getElementById('facilityResidentName').value.trim(),
@@ -38,8 +30,7 @@ document.addEventListener('DOMContentLoaded', function() {
             facilityType: document.getElementById('facilityType').value,
             date: document.getElementById('facilityDate').value,
             startTime: startTime,
-            endTime: endTime,
-            duration: duration
+            endTime: endTime
         };
 
         try {
@@ -80,10 +71,10 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             const response = await fetch(`${API_URL}/search?type=${type}&value=${encodeURIComponent(value)}`);
             const data = await response.json();
-            
-            if (data.logs && data.logs.length > 0) {
-                updateTable(data.logs);
-                showAlert(`Found ${data.logs.length} records`, 'success');
+
+            if (data && data.length > 0) {
+                updateTable(data);
+                showAlert(`Found ${data.length} records`, 'success');
             } else {
                 updateTable([]);
                 showAlert('No matching records found', 'info');
@@ -108,10 +99,7 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             const response = await fetch(API_URL);
             const data = await response.json();
-            
-            if (data.logs) {
-                updateTable(data.logs);
-            }
+            updateTable(data || []);
         } catch (error) {
             console.error('Error:', error);
             showAlert('Failed to load usage data', 'error');
@@ -119,16 +107,21 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function updateTable(logs) {
-        tableBody.innerHTML = logs.map(log => `
+        tableBody.innerHTML = logs.map(log => {
+            const start = new Date(log.startTime * 1000);
+            const end = new Date(log.endTime * 1000);
+            const durationMins = Math.round((end - start) / 60000);
+            return `
             <tr>
                 <td>${log.residentName}</td>
                 <td>${log.residentID}</td>
                 <td>${log.facility}</td>
-                <td>${log.date}</td>
-                <td>${log.time}</td>
-                <td>${log.duration}</td>
+                <td>${start.toLocaleDateString()}</td>
+                <td>${start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+                <td>${durationMins}</td>
             </tr>
-        `).join('');
+        `;
+        }).join('');
     }
 
     function showAlert(message, type) {

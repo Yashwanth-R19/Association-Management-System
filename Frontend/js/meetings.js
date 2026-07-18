@@ -65,10 +65,10 @@ document.addEventListener('DOMContentLoaded', function() {
             meetingFormActual.reset();
         } catch (error) {
             console.error('Error:', error);
-            alert('Error: ' + error.message);
+            showToast('Error: ' + error.message, 'error');
         }
     });
-    
+
     // Search functionality
     searchBtn.addEventListener('click', async function() {
         const searchType = document.getElementById('searchType').value;
@@ -87,7 +87,7 @@ document.addEventListener('DOMContentLoaded', function() {
             renderMeetings(filtered);
         } catch (error) {
             console.error('Search error:', error);
-            alert('Search failed: ' + error.message);
+            showToast('Search failed: ' + error.message, 'error');
         }
     });
     
@@ -106,7 +106,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Delete meeting
     deleteMeetingBtn.addEventListener('click', async function() {
-        if (currentMeetingId && confirm('Are you sure you want to delete this meeting?')) {
+        if (currentMeetingId && await confirmDialog('Are you sure you want to delete this meeting?')) {
             try {
                 const response = await fetch(`/api/meetings/${currentMeetingId}`, {
                     method: 'DELETE'
@@ -121,7 +121,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 modal.style.display = 'none';
             } catch (error) {
                 console.error('Error:', error);
-                alert('Error: ' + error.message);
+                showToast('Error: ' + error.message, 'error');
             }
         }
     });
@@ -136,7 +136,7 @@ document.addEventListener('DOMContentLoaded', function() {
             renderMeetings(meetings);
         } catch (error) {
             console.error('Error loading meetings:', error);
-            alert('Failed to load meetings: ' + error.message);
+            showToast('Failed to load meetings: ' + error.message, 'error');
         }
     }
     
@@ -166,7 +166,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('.delete-meeting').forEach(btn => {
             btn.addEventListener('click', async function() {
                 const meetingId = parseInt(this.closest('tr').getAttribute('data-id'));
-                if (confirm(`Are you sure you want to delete meeting #${meetingId}?`)) {
+                if (await confirmDialog(`Are you sure you want to delete meeting #${meetingId}?`)) {
                     try {
                         const response = await fetch(`/api/meetings/${meetingId}`, {
                             method: 'DELETE'
@@ -180,7 +180,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         await loadMeetings();
                     } catch (error) {
                         console.error('Error:', error);
-                        alert('Error: ' + error.message);
+                        showToast('Error: ' + error.message, 'error');
                     }
                 }
             });

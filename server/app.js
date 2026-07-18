@@ -1,8 +1,9 @@
+require('dotenv').config();
 const express = require('express');
-const session = require('express-session');
+const cookieParser = require('cookie-parser');
 const path = require('path');
-const { exec } = require('child_process');
 const app = express();
+const { attachUser } = require('./middleware/auth');
 
 // Import routes
 const residentsRoutes = require('./routes/residents');
@@ -12,33 +13,20 @@ const meetingsRoutes = require('./routes/meetings');
 const facilityRoutes = require('./routes/facility');
 const staffRoutes = require('./routes/staff');
 
-// Session configuration
-app.use(session({
-    secret: 'ceebros-gardens-secret-key-2023',
-    resave: false,
-    saveUninitialized: false,
-    cookie: { 
-        secure: false,
-        httpOnly: true,
-        maxAge: 24 * 60 * 60 * 1000,
-        sameSite: 'strict'
-    }
-}));
-
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use((req, res, next) => {
-    if (req.path.includes('login')) {
-        require('fs').appendFileSync('debug.log', `[middleware] ${req.method} ${req.path}\n`);
-    }
-    next();
-});
+app.use(cookieParser());
+app.use(attachUser);
 app.use(express.static(path.join(__dirname, '../Frontend')));
 app.use('/api/association', associationRoutes);
 app.use('/api/meetings', meetingsRoutes);
 app.use('/api/facilities', require('./routes/facility'));
 app.use('/api/staff', require('./routes/staff'));
+app.use('/api/vendors', require('./routes/vendor'));
+app.use('/api/complaints', require('./routes/complaints'));
+app.use('/api/notices', require('./routes/notices'));
+app.use('/api/dues', require('./routes/dues'));
 
 // Public paths
 const publicPaths = [
@@ -58,7 +46,7 @@ app.use((req, res, next) => {
         return next();
     }
 
-    if (!req.session.user) {
+    if (!req.user) {
         if (req.xhr || req.headers.accept?.includes('application/json')) {
             return res.status(401).json({ error: 'Unauthorized' });
         }
@@ -79,22 +67,18 @@ app.get('/login.html', (req, res) => {
 
 // Auth check endpoint
 app.get('/api/check-auth', (req, res) => {
-    res.json({ 
-        authenticated: !!req.session.user,
-        user: req.session.user || null
+    res.json({
+        authenticated: !!req.user,
+        user: req.user ? { username: req.user.username, role: req.user.role } : null
     });
 });
 
 // Logout endpoint
-app.get('/api/logout', (req, res) => {
-    req.session.destroy(err => {
-        if (err) {
-            return res.status(500).json({ success: false });
-        }
-        res.clearCookie('connect.sid');
-        res.json({ success: true, redirect: '/login.html' });
-    });
-});
+app.get('/api/logout', require('./controllers/authController').handleLogout);
+
+// Profile endpoints
+app.get('/api/profile', require('./controllers/authController').getProfile);
+app.post('/api/profile/password', require('./controllers/authController').changePassword);
 
 // API Routes
 app.use('/api', apiRoutes);
@@ -106,8 +90,14 @@ app.use((err, req, res, next) => {
     res.status(500).send('Server Error');
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-    console.log(`Access the site at: http://localhost:${PORT}`);
-});
+// Only bind a port when this file is run directly (`node server/app.js`) —
+// requiring it as a module (e.g. from supertest in tests) just gets the app.
+if (require.main === module) {
+    const PORT = process.env.PORT || 3000;
+    app.listen(PORT, () => {
+        console.log(`Server running on port ${PORT}`);
+        console.log(`Access the site at: http://localhost:${PORT}`);
+    });
+}
+
+module.exports = app;

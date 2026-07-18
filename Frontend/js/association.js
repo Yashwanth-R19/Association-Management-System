@@ -34,7 +34,6 @@ document.addEventListener('DOMContentLoaded', function() {
         e.preventDefault();
         
         const memberData = {
-            id: parseInt(document.getElementById('memberId').value),
             name: document.getElementById('memberName').value,
             role: document.getElementById('memberRole').value,
             email: document.getElementById('memberEmail').value,
@@ -66,10 +65,10 @@ document.addEventListener('DOMContentLoaded', function() {
             memberFormActual.reset();
         } catch (error) {
             console.error('Error:', error);
-            alert('Error: ' + error.message);
+            showToast('Error: ' + error.message, 'error');
         }
     });
-    
+
     // Search functionality
     searchBtn.addEventListener('click', async function() {
         const searchType = document.getElementById('searchType').value;
@@ -91,7 +90,7 @@ document.addEventListener('DOMContentLoaded', function() {
             renderMembers(filtered);
         } catch (error) {
             console.error('Search error:', error);
-            alert('Search failed: ' + error.message);
+            showToast('Search failed: ' + error.message, 'error');
         }
     });
     
@@ -110,7 +109,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Delete member
     deleteMemberBtn.addEventListener('click', async function() {
-        if (currentMemberId && confirm('Are you sure you want to delete this member?')) {
+        if (currentMemberId && await confirmDialog('Are you sure you want to delete this member?')) {
             try {
                 const response = await fetch(`/api/association/${currentMemberId}`, {
                     method: 'DELETE'
@@ -130,7 +129,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 memberDetailsModal.style.display = 'none';
             } catch (error) {
                 console.error('Error:', error);
-                alert('Error: ' + error.message);
+                showToast('Error: ' + error.message, 'error');
             }
         }
     });
@@ -148,7 +147,7 @@ document.addEventListener('DOMContentLoaded', function() {
             renderMembers(members);
         } catch (error) {
             console.error('Error loading members:', error);
-            alert('Failed to load members: ' + error.message);
+            showToast('Failed to load members: ' + error.message, 'error');
         }
     }
     
@@ -180,7 +179,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('.delete-member').forEach(btn => {
             btn.addEventListener('click', async function() {
                 const memberId = parseInt(this.closest('tr').getAttribute('data-id'));
-                if (confirm(`Are you sure you want to delete member #${memberId}?`)) {
+                if (await confirmDialog(`Are you sure you want to delete member #${memberId}?`)) {
                     try {
                         const response = await fetch(`/api/association/${memberId}`, {
                             method: 'DELETE'
@@ -199,7 +198,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         await loadMembers();
                     } catch (error) {
                         console.error('Error:', error);
-                        alert('Error: ' + error.message);
+                        showToast('Error: ' + error.message, 'error');
                     }
                 }
             });

@@ -1,6 +1,5 @@
 # Dependencies
 node_modules/
-package-lock.json
 
 # Compiled C binaries
 # Developers must compile from source with gcc
@@ -31,6 +30,7 @@ temp.csv
 Thumbs.db
 
 # OS-specific
+.env
 .env.local
 .env.*.local
 
@@ -38,8 +38,4 @@ Thumbs.db
 build/
 dist/
 *.log
-BUILD.md
 CLAUDE.md
-CONTRIBUTING.md
-REPO_SETUP.md
-LICENSE

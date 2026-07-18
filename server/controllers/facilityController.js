@@ -1,102 +1,92 @@
-const { exec } = require('child_process');
-const path = require('path');
-const fs = require('fs');
+const pool = require('../db/pool');
+const { runEngine } = require('../lib/dsEngine');
+const { quoted, csvRow } = require('../lib/csvShape');
+const { isFacility, isValidIsoDate, isValidTime } = require('../lib/validators');
 
-const facilityExe = path.join(__dirname, '../../Backend/facility-tracking.c');
-const compiledExe = path.join(__dirname, '../../server/c-executables/facility-tracking');
-const csvFile = path.join(__dirname, '../../server/data/usage_logs.csv');
-
-// Ensure CSV file exists
-if (!fs.existsSync(csvFile)) {
-    fs.writeFileSync(csvFile, 'ResidentID,ResidentName,Date,Time,Facility,Duration\n');
-}
-
-// Compile the C program
-function compileProgram() {
-    return new Promise((resolve, reject) => {
-        exec(`gcc "${facilityExe}" -o "${compiledExe}"`, (error, stdout, stderr) => {
-            if (error) {
-                console.error('Compilation error:', stderr);
-                return reject(new Error('Failed to compile facility tracking program'));
-            }
-            resolve();
-        });
-    });
-}
-
-// Execute the C program
-function executeCommand(command) {
-    return new Promise((resolve, reject) => {
-        exec(`"${compiledExe}" ${command}`, (error, stdout, stderr) => {
-            if (error) {
-                console.error('Execution error:', stderr);
-                return reject(new Error('Failed to execute facility tracking'));
-            }
-            try {
-                const result = JSON.parse(stdout);
-                resolve(result);
-            } catch (e) {
-                console.error('JSON parse error:', e);
-                reject(new Error('Invalid response from facility tracking'));
-            }
-        });
-    });
+// Bookings are an append-only log (no edit/delete), so unlike the other
+// modules this doesn't need the full resync-by-natural-key machinery — a
+// successful "book" command is just inserted directly once the DS engine has
+// confirmed there's no time-slot conflict.
+async function fetchBookingsCsv() {
+    const { rows } = await pool.query(`
+        SELECT facility_name, resident_door_number, resident_name,
+               EXTRACT(EPOCH FROM start_time)::bigint AS start_epoch,
+               EXTRACT(EPOCH FROM end_time)::bigint AS end_epoch
+        FROM facility_bookings ORDER BY start_time
+    `);
+    return rows.map(r => csvRow([
+        quoted(r.facility_name), quoted(r.resident_door_number), quoted(r.resident_name),
+        r.start_epoch, r.end_epoch
+    ])).join('\n');
 }
 
 exports.getFacilityLogs = async (req, res) => {
     try {
-        await compileProgram();
-        const result = await executeCommand('get');
+        const csv = await fetchBookingsCsv();
+        const { result } = await runEngine('facility-tracking', ['list'], csv);
         res.json(result);
-    } catch (error) {
-        res.status(500).json({ 
-            status: 'error', 
-            message: error.message 
-        });
+    } catch (err) {
+        console.error('[facility:list]', err.message);
+        res.status(500).json({ status: 'error', message: 'Failed to load facility bookings' });
     }
 };
 
 exports.addFacilityLog = async (req, res) => {
-    try {
-        const { residentName, doorNumber, facilityType, date, startTime, endTime } = req.body;
-        
-        // Calculate duration in minutes
-        let duration = 0;
-        if (startTime && endTime) {
-            const start = new Date(`1970-01-01T${startTime}:00`);
-            const end = new Date(`1970-01-01T${endTime}:00`);
-            duration = Math.round((end - start) / 60000); // ms to minutes
-        }
+    const { residentName, doorNumber, facilityType, date, startTime, endTime } = req.body || {};
+    if (!residentName || !doorNumber || !facilityType || !date || !startTime || !endTime) {
+        return res.status(400).json({ status: 'error', message: 'Missing required fields' });
+    }
+    if (!isFacility(facilityType)) {
+        return res.status(400).json({ status: 'error', message: 'Facility must be one of gym, pool, clubhouse, playground' });
+    }
+    if (!isValidIsoDate(date)) {
+        return res.status(400).json({ status: 'error', message: 'Date must be a valid calendar date (YYYY-MM-DD)' });
+    }
+    if (!isValidTime(startTime) || !isValidTime(endTime)) {
+        return res.status(400).json({ status: 'error', message: 'Start/end time must be in HH:MM (24-hour) format' });
+    }
 
-        await compileProgram();
-        const command = `add "${doorNumber}" "${residentName}" "${facilityType}" "${date}" "${startTime}" ${duration}`;
-        const result = await executeCommand(command);
-        
+    const start = new Date(`${date}T${startTime}:00`);
+    const end = new Date(`${date}T${endTime}:00`);
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+        return res.status(400).json({ status: 'error', message: 'Invalid date/time' });
+    }
+    if (end.getTime() <= start.getTime()) {
+        return res.status(400).json({ status: 'error', message: 'End time must be after start time' });
+    }
+
+    try {
+        const csv = await fetchBookingsCsv();
+        const { result } = await runEngine('facility-tracking', [
+            'book', facilityType, doorNumber, residentName,
+            String(Math.floor(start.getTime() / 1000)), String(Math.floor(end.getTime() / 1000))
+        ], csv);
+
+        if (result.status === 'success') {
+            await pool.query(
+                `INSERT INTO facility_bookings (facility_name, resident_door_number, resident_name, start_time, end_time)
+                 VALUES ($1, $2, $3, $4, $5)`,
+                [facilityType, doorNumber, residentName, start.toISOString(), end.toISOString()]
+            );
+        }
         res.json(result);
-    } catch (error) {
-        res.status(500).json({ 
-            status: 'error', 
-            message: error.message 
-        });
+    } catch (err) {
+        console.error('[facility:book]', err.message);
+        res.status(500).json({ status: 'error', message: 'Failed to record booking' });
     }
 };
-exports.searchFacilityLogs = async (req, res) => {
-    try {
-        const { type, value } = req.query;
-        
-        if (!type || !value) {
-            throw new Error('Both search type and value are required');
-        }
 
-        await compileProgram();
-        const command = `search "${type}" "${value}"`;
-        const result = await executeCommand(command);
-        
+exports.searchFacilityLogs = async (req, res) => {
+    const { type, value } = req.query;
+    if (!type || !value) {
+        return res.status(400).json({ status: 'error', message: 'Both search type and value are required' });
+    }
+    try {
+        const csv = await fetchBookingsCsv();
+        const { result } = await runEngine('facility-tracking', ['search', type, value], csv);
         res.json(result);
-    } catch (error) {
-        res.status(500).json({ 
-            status: 'error', 
-            message: error.message 
-        });
+    } catch (err) {
+        console.error('[facility:search]', err.message);
+        res.status(500).json({ status: 'error', message: 'Failed to search facility bookings' });
     }
 };

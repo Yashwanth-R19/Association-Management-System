@@ -2,182 +2,157 @@
 <html lang="en">
 <head>
     <script>
-        // Check if user is authenticated
+        (function(){try{document.documentElement.setAttribute('data-theme',localStorage.getItem('ams-theme')||'light');}catch(e){document.documentElement.setAttribute('data-theme','light');}})();
         if (!sessionStorage.getItem('isAuthenticated')) {
-            window.location.href = 'login.html';
+            fetch('/api/check-auth').then(function(r){return r.json();}).then(function(d){ if(!d.authenticated) window.location.href='login.html'; }).catch(function(){ window.location.href='login.html'; });
         }
-        </script>
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Association - Ceebros Gardens</title>
-    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&display=swap" rel="stylesheet">
     <link href="css/styles.css" rel="stylesheet">
 </head>
 <body>
-    <header>
-        <div class="header-content">
-            <div class="branding">
-                <h1>Ceebros<span>Gardens</span></h1>
-                <p class="tagline">Association Management System</p>
-            </div>
-            <nav>
-                <ul>
-                    <li><a href="login.html">Login</a></li>
-                    <li><a href="residents.html">Residents</a></li>
-                    <li><a href="association.html" class="active">Association</a></li>
-                    <li><a href="meetings.html">Meetings</a></li>
-                    <li><a href="facility-tracking.html">Facilities</a></li>
-                    <li><a href="vendor-management.html">Vendors</a></li>
-                    <li><a href="staff-management.html">Staff</a></li>
-                    <li class="user-menu">
-                        <a href="profile.html" class="user-link">
-                            <span class="user-name">Admin</span>
-                            <i class="user-icon"></i>
-                        </a>
-                    </li>
-                </ul>
-            </nav>
-        </div>
-    </header>
-
-    <main class="container">
-        <div class="screen-header">
-            <h2 class="feature-title">Association Members</h2>
-            <button class="btn btn-primary" id="addMemberBtn">
-                <i class="icon-plus"></i> Add Member
-            </button>
-        </div>
-
-        <div class="search-container">
-            <div class="form-group">
-                <label for="searchType">Search By</label>
-                <select id="searchType" class="form-control">
-                    <option value="name">Name</option>
-                    <option value="id">ID</option>
-                    <option value="role">Role</option>
-                    <option value="house">Door Number</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="searchKeyword">Search Term</label>
-                <input type="text" id="searchKeyword" class="form-control" placeholder="Enter search term...">
-            </div>
-            <button class="btn btn-secondary" id="searchBtn">Search</button>
-            <button class="btn btn-outline" id="resetSearchBtn">Reset</button>
-        </div>
-
-        <div class="form-panel" id="memberForm" style="display:none;">
-            <h3 class="form-title">Add New Association Member</h3>
-            <form id="associationMemberForm">
-                <div class="form-row">
-                    <div class="form-col">
-                        <div class="form-group">
-                            <label for="memberId">Member ID</label>
-                            <input type="number" id="memberId" class="form-control" required>
-                        </div>
-                    </div>
-                    <div class="form-col">
-                        <div class="form-group">
-                            <label for="memberHouseNumber">Door Number</label>
-                            <input type="text" id="memberHouseNumber" class="form-control" required>
-                        </div>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="memberName">Full Name</label>
-                    <input type="text" id="memberName" class="form-control" required>
-                </div>
-                <div class="form-row">
-                    <div class="form-col">
-                        <div class="form-group">
-                            <label for="memberRole">Role</label>
-                            <select id="memberRole" class="form-control" required>
-                                <option value="">Select Role</option>
-                                <option value="Resident">Resident</option>
-                                <option value="Committee Member">Committee Member</option>
-                                <option value="President">President</option>
-                                <option value="Secretary">Secretary</option>
-                                <option value="Treasurer">Treasurer</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-col">
-                        <div class="form-group">
-                            <label for="memberPhone">Phone</label>
-                            <input type="tel" id="memberPhone" class="form-control" required>
-                        </div>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="memberEmail">Email</label>
-                    <input type="email" id="memberEmail" class="form-control" required>
-                </div>
-                <div class="form-actions">
-                    <button type="submit" class="btn btn-primary">Save Member</button>
-                    <button type="button" class="btn btn-outline" id="cancelMemberBtn">Cancel</button>
-                </div>
-            </form>
-        </div>
-
-        <div class="table-container">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Name</th>
-                        <th>Role</th>
-                        <th>Email</th>
-                        <th>Phone</th>
-                        <th>Door No.</th>
-                        <th class="actions-cell">Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="memberTable">
-                    <!-- Members will be populated by JavaScript -->
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Member Details Modal -->
-        <div class="modal" id="memberDetailsModal" style="display:none;">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3 id="modalMemberName"></h3>
-                    <span class="close-modal">&times;</span>
-                </div>
-                <div class="modal-body">
-                    <div class="profile-detail">
-                        <label>ID:</label>
-                        <span id="modalMemberId"></span>
-                    </div>
-                    <div class="profile-detail">
-                        <label>Role:</label>
-                        <span id="modalMemberRole"></span>
-                    </div>
-                    <div class="profile-detail">
-                        <label>Door Number:</label>
-                        <span id="modalMemberHouse"></span>
-                    </div>
-                    <div class="profile-detail">
-                        <label>Email:</label>
-                        <span id="modalMemberEmail"></span>
-                    </div>
-                    <div class="profile-detail">
-                        <label>Phone:</label>
-                        <span id="modalMemberPhone"></span>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-danger" id="deleteMemberBtn">
-                        <i class="icon-trash"></i> Delete Member
+    <div class="app">
+        <div class="app-main">
+            <main class="content">
+                <div class="screen-header">
+                    <h2 class="feature-title">Association Members</h2>
+                    <button class="btn btn-primary" id="addMemberBtn">
+                        <i class="icon-plus"></i> Add Member
                     </button>
-                    <button class="btn btn-outline close-modal">Close</button>
                 </div>
-            </div>
-        </div>
-    </main>
 
-    <script src="js/main.js"></script>
+                <div class="search-container">
+                    <div class="form-group">
+                        <label for="searchType">Search By</label>
+                        <select id="searchType" class="form-control">
+                            <option value="name">Name</option>
+                            <option value="id">ID</option>
+                            <option value="role">Role</option>
+                            <option value="house">Door Number</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="searchKeyword">Search Term</label>
+                        <input type="text" id="searchKeyword" class="form-control" placeholder="Enter search term...">
+                    </div>
+                    <button class="btn btn-secondary" id="searchBtn">Search</button>
+                    <button class="btn btn-outline" id="resetSearchBtn">Reset</button>
+                </div>
+
+                <div class="form-panel" id="memberForm" style="display:none;">
+                    <h3 class="form-title">Add New Association Member</h3>
+                    <form id="associationMemberForm">
+                        <div class="form-row">
+                            <div class="form-col">
+                                <div class="form-group">
+                                    <label for="memberHouseNumber">Door Number</label>
+                                    <input type="text" id="memberHouseNumber" class="form-control" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="memberName">Full Name</label>
+                            <input type="text" id="memberName" class="form-control" required>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-col">
+                                <div class="form-group">
+                                    <label for="memberRole">Role</label>
+                                    <select id="memberRole" class="form-control" required>
+                                        <option value="">Select Role</option>
+                                        <option value="Resident">Resident</option>
+                                        <option value="Committee Member">Committee Member</option>
+                                        <option value="President">President</option>
+                                        <option value="Secretary">Secretary</option>
+                                        <option value="Treasurer">Treasurer</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-col">
+                                <div class="form-group">
+                                    <label for="memberPhone">Phone</label>
+                                    <input type="tel" id="memberPhone" class="form-control" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="memberEmail">Email</label>
+                            <input type="email" id="memberEmail" class="form-control" required>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">Save Member</button>
+                            <button type="button" class="btn btn-outline" id="cancelMemberBtn">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Role</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                                <th>Door No.</th>
+                                <th class="actions-cell">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="memberTable">
+                            <!-- Members will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Member Details Modal -->
+                <div class="modal" id="memberDetailsModal" style="display:none;">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3 id="modalMemberName"></h3>
+                            <span class="close-modal">&times;</span>
+                        </div>
+                        <div class="modal-body">
+                            <div class="profile-detail">
+                                <label>ID:</label>
+                                <span id="modalMemberId"></span>
+                            </div>
+                            <div class="profile-detail">
+                                <label>Role:</label>
+                                <span id="modalMemberRole"></span>
+                            </div>
+                            <div class="profile-detail">
+                                <label>Door Number:</label>
+                                <span id="modalMemberHouse"></span>
+                            </div>
+                            <div class="profile-detail">
+                                <label>Email:</label>
+                                <span id="modalMemberEmail"></span>
+                            </div>
+                            <div class="profile-detail">
+                                <label>Phone:</label>
+                                <span id="modalMemberPhone"></span>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-danger" id="deleteMemberBtn">
+                                <i class="icon-trash"></i> Delete Member
+                            </button>
+                            <button class="btn btn-outline close-modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="js/shell.js"></script>
+    <script src="js/ui.js"></script>
     <script src="js/association.js"></script>
 </body>
 </html>

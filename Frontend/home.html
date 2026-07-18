@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script>
+        (function () {
+            try {
+                var t = localStorage.getItem('ams-theme') || 'light';
+                document.documentElement.setAttribute('data-theme', t);
+            } catch (e) { document.documentElement.setAttribute('data-theme', 'light'); }
+        })();
+        if (!sessionStorage.getItem('isAuthenticated')) {
+            fetch('/api/check-auth').then(function (r) { return r.json(); }).then(function (d) {
+                if (!d.authenticated) window.location.href = 'login.html';
+            }).catch(function () { window.location.href = 'login.html'; });
+        }
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home - Ceebros Gardens</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&display=swap" rel="stylesheet">
+    <link href="css/styles.css" rel="stylesheet">
+</head>
+<body>
+    <div class="app">
+        <div class="app-main">
+            <main class="content">
+                <section class="hero">
+                    <p class="eyebrow">Ceebros Gardens</p>
+                    <h1 id="greeting">Good day, <em>Admin</em></h1>
+                    <p>Everything happening across the association, at a glance. Jump into any module from the left, or pick up a common task below.</p>
+                </section>
+
+                <div class="stat-grid" id="statGrid">
+                    <article class="stat" style="animation-delay:.04s">
+                        <div class="s-top"><span class="s-label">Residents</span><span class="s-ico" id="ico-res"></span></div>
+                        <div class="s-value" data-stat="residents">—</div>
+                        <div class="s-sub" id="sub-res">Across five blocks</div>
+                    </article>
+                    <article class="stat clay" style="animation-delay:.1s">
+                        <div class="s-top"><span class="s-label">Open complaints</span><span class="s-ico" id="ico-cmp"></span></div>
+                        <div class="s-value" data-stat="complaints">—</div>
+                        <div class="s-sub" id="sub-cmp">Awaiting resolution</div>
+                    </article>
+                    <article class="stat warn" style="animation-delay:.16s">
+                        <div class="s-top"><span class="s-label">Upcoming meetings</span><span class="s-ico" id="ico-mtg"></span></div>
+                        <div class="s-value" data-stat="meetings">—</div>
+                        <div class="s-sub" id="sub-mtg">Scheduled ahead</div>
+                    </article>
+                    <article class="stat sky" style="animation-delay:.22s">
+                        <div class="s-top"><span class="s-label">Dues outstanding</span><span class="s-ico" id="ico-due"></span></div>
+                        <div class="s-value" data-stat="dues" data-prefix="&#8377;">—</div>
+                        <div class="s-sub" id="sub-due">Unpaid maintenance</div>
+                    </article>
+                </div>
+
+                <div class="home-cols">
+                    <section class="panel" style="animation-delay:.1s">
+                        <h3>Recent notices</h3>
+                        <div class="feed" id="activityFeed">
+                            <p class="muted">Loading recent activity…</p>
+                        </div>
+                    </section>
+
+                    <section class="panel" style="animation-delay:.18s">
+                        <h3>Quick actions</h3>
+                        <div class="quick-grid" id="quickGrid"></div>
+                    </section>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="js/shell.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/home.js"></script>
+</body>
+</html>

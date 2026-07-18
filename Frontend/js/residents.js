@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', function() {
-    const API_URL = 'http://localhost:3000/api/residents';
+    const API_URL = '/api/residents';
     const addResidentBtn = document.getElementById('addResidentBtn');
     const residentFormPanel = document.getElementById('residentFormPanel');
     const residentForm = document.getElementById('residentForm');
@@ -63,7 +63,7 @@ document.addEventListener('DOMContentLoaded', function() {
             blockSelectGroup.style.display = 'block';
         } else if (type === 'floor') {
             floorSelectGroup.style.display = 'block';
-        } else if (type !== 'unpaid') {
+        } else {
             searchInputGroup.style.display = 'block';
         }
     }
@@ -119,11 +119,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 <td>${resident.contact}</td>
                 <td>${resident.ownership}</td>
                 <td>${resident.parking_slot || '-'}</td>
-                <td>
-                    <span class="status-badge ${getStatusClass(resident.maintenance)}">
-                        ${resident.maintenance}
-                    </span>
-                </td>
                 <td class="action-btns">
                     <button class="btn btn-sm btn-danger btn-delete" data-id="${resident.door_number}">Delete</button>
                 </td>
@@ -137,16 +132,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 deleteResident(doorNumber);
             });
         });
-    }
-
-    // Get CSS class for maintenance status
-    function getStatusClass(maintenance) {
-        switch (maintenance) {
-            case 'PAID': return 'badge-active';
-            case 'UNPAID': return 'badge-inactive';
-            case 'PARTIAL': return 'badge-warning';
-            default: return '';
-        }
     }
 
     // Validate resident data
@@ -190,8 +175,7 @@ document.addEventListener('DOMContentLoaded', function() {
             doorAlpha: document.getElementById('doorAlpha').value.toUpperCase(),
             contact: document.getElementById('contact').value.trim(),
             ownership: document.getElementById('ownership').value,
-            parking: document.getElementById('parking').value.trim(),
-            maintenance: document.getElementById('maintenance').value
+            parking: document.getElementById('parking').value.trim()
         };
 
         if (!validateResident(residentData)) {
@@ -223,11 +207,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Delete resident function
-    function deleteResident(doorNumber) {
-        if (!confirm(`Are you sure you want to delete resident ${doorNumber}?`)) {
+    async function deleteResident(doorNumber) {
+        if (!await confirmDialog(`Are you sure you want to delete resident ${doorNumber}?`)) {
             return;
         }
-        
+
         fetch(`${API_URL}/${encodeURIComponent(doorNumber)}`, {
             method: 'DELETE'
         })
@@ -264,9 +248,6 @@ document.addEventListener('DOMContentLoaded', function() {
             case 'name':
                 const name = searchInput.value.trim();
                 if (name) url += `name/${encodeURIComponent(name)}`;
-                break;
-            case 'unpaid':
-                url += 'unpaid';
                 break;
             case 'block':
                 const block = blockSelect.value;

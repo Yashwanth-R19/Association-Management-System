@@ -1,257 +1,220 @@
+// Facility booking module. Two structures built fresh from stdin each call:
+// a hash table of bookings keyed by resident door number (for listing/search
+// — the module's original DS), and a per-facility timeline: a linked list of
+// bookings sorted by start time, used to reject overlapping bookings with an
+// early-exit scan (once a candidate's start time is past the new booking's
+// end time, nothing later in the sorted list can overlap either).
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <ctype.h>
 
-#define TABLE_SIZE 100
-#define FILE_NAME "server/data/usage_logs.csv"
+#define TABLE_SIZE 101
 
-typedef struct UsageLog {
-    char date[11];        // YYYY-MM-DD
-    char time[6];         // HH:MM
+typedef struct Booking {
     char facility[20];
-    char residentID[50];  // Mayflower-5-A
+    char residentID[50];
     char residentName[50];
-    int duration;
-    struct UsageLog* next;
-} UsageLog;
+    long startEpoch;
+    long endEpoch;
+    struct Booking* next; // resident-hash chain
+} Booking;
 
-typedef struct {
-    UsageLog* head;
-    int count;
-} LogList;
+Booking* residentBuckets[TABLE_SIZE];
 
-LogList residentLogs[TABLE_SIZE];
+typedef struct TimelineNode {
+    Booking* booking;
+    struct TimelineNode* next; // sorted ascending by startEpoch
+} TimelineNode;
 
-// Function prototypes
-void printLog(UsageLog* log);
-unsigned int hash(const char* key);
-UsageLog* createLog(const char* date, const char* time, const char* facility, 
-                   const char* residentID, const char* residentName, int duration);
-void saveLogs();
-void loadLogs();
-void cleanup();
-void searchLogs(const char* type, const char* value);
+typedef struct FacilityTimeline {
+    char facilityName[20];
+    TimelineNode* head;
+    struct FacilityTimeline* next;
+} FacilityTimeline;
 
-unsigned int hash(const char* key) {
-    unsigned long hash = 5381;
+FacilityTimeline* facilities = NULL;
+
+unsigned int hashKey(const char* key) {
+    unsigned long h = 5381;
     int c;
-    while ((c = *key++)) {
-        hash = ((hash << 5) + hash) + c;
-    }
-    return hash % TABLE_SIZE;
+    while ((c = *key++)) h = ((h << 5) + h) + c;
+    return h % TABLE_SIZE;
 }
 
-UsageLog* createLog(const char* date, const char* time, const char* facility, 
-                   const char* residentID, const char* residentName, int duration) {
-    // Basic validation
-    if (!date || !time || !facility || !residentID || !residentName || duration < 0) {
-        return NULL;
+FacilityTimeline* findOrCreateTimeline(const char* name) {
+    FacilityTimeline* t = facilities;
+    while (t) {
+        if (strcmp(t->facilityName, name) == 0) return t;
+        t = t->next;
     }
-
-    UsageLog* newLog = (UsageLog*)malloc(sizeof(UsageLog));
-    if (!newLog) return NULL;
-
-    strncpy(newLog->date, date, 10);
-    strncpy(newLog->time, time, 5);
-    strncpy(newLog->facility, facility, 19);
-    strncpy(newLog->residentID, residentID, 49);
-    strncpy(newLog->residentName, residentName, 49);
-    newLog->duration = duration;
-    newLog->next = NULL;
-
-    // Ensure null termination
-    newLog->date[10] = '\0';
-    newLog->time[5] = '\0';
-    newLog->facility[19] = '\0';
-    newLog->residentID[49] = '\0';
-    newLog->residentName[49] = '\0';
-
-    return newLog;
+    FacilityTimeline* nt = malloc(sizeof(FacilityTimeline));
+    strncpy(nt->facilityName, name, sizeof(nt->facilityName) - 1);
+    nt->facilityName[sizeof(nt->facilityName) - 1] = '\0';
+    nt->head = NULL;
+    nt->next = facilities;
+    facilities = nt;
+    return nt;
 }
 
-void saveLogs() {
-    FILE* file = fopen(FILE_NAME, "w");
-    if (!file) {
-        perror("Error opening file");
-        printf("{\"status\":\"error\",\"message\":\"Cannot open file for writing\"}");
+void insertIntoTimeline(FacilityTimeline* t, Booking* b) {
+    TimelineNode* node = malloc(sizeof(TimelineNode));
+    node->booking = b;
+    if (!t->head || b->startEpoch < t->head->booking->startEpoch) {
+        node->next = t->head;
+        t->head = node;
         return;
     }
-    
-    fprintf(file, "ResidentID,ResidentName,Date,Time,Facility,Duration\n");
-    
-    for (int i = 0; i < TABLE_SIZE; i++) {
-        UsageLog* current = residentLogs[i].head;
-        while (current) {
-            fprintf(file, "%s,%s,%s,%s,%s,%d\n",
-                   current->residentID,
-                   current->residentName,
-                   current->date,
-                   current->time,
-                   current->facility,
-                   current->duration);
-            current = current->next;
-        }
-    }
-    
-    fclose(file);
+    TimelineNode* cur = t->head;
+    while (cur->next && cur->next->booking->startEpoch <= b->startEpoch) cur = cur->next;
+    node->next = cur->next;
+    cur->next = node;
 }
 
-void loadLogs() {
-    FILE* file = fopen(FILE_NAME, "r");
-    if (!file) return;
-    
-    char line[256];
-    fgets(line, sizeof(line), file); // Skip header
-    
-    while (fgets(line, sizeof(line), file)) {
-        char residentID[50], residentName[50], date[11], time[6], facility[20];
-        int duration;
-        
-        if (sscanf(line, "%49[^,],%49[^,],%10[^,],%5[^,],%19[^,],%d",
-               residentID, residentName, date, time, facility, &duration) == 6) {
-            
-            int index = hash(residentID);
-            UsageLog* newLog = createLog(date, time, facility, residentID, residentName, duration);
-            if (newLog) {
-                newLog->next = residentLogs[index].head;
-                residentLogs[index].head = newLog;
-                residentLogs[index].count++;
-            }
-        }
+// Returns 1 if [start,end) overlaps an existing booking on this facility's timeline.
+int hasOverlap(const char* facility, long start, long end) {
+    FacilityTimeline* t = facilities;
+    while (t && strcmp(t->facilityName, facility) != 0) t = t->next;
+    if (!t) return 0;
+
+    TimelineNode* cur = t->head;
+    while (cur) {
+        if (cur->booking->startEpoch >= end) break; // sorted ascending: nothing further can overlap
+        if (start < cur->booking->endEpoch && end > cur->booking->startEpoch) return 1;
+        cur = cur->next;
     }
-    
-    fclose(file);
+    return 0;
 }
 
-void printLog(UsageLog* log) {
-    printf("{\"residentID\":\"%s\",\"residentName\":\"%s\",\"date\":\"%s\",\"time\":\"%s\",\"facility\":\"%s\",\"duration\":%d}",
-           log->residentID, log->residentName, log->date, log->time, log->facility, log->duration);
+Booking* createBooking(const char* facility, const char* residentID, const char* residentName, long start, long end) {
+    Booking* b = malloc(sizeof(Booking));
+    strncpy(b->facility, facility, sizeof(b->facility) - 1); b->facility[sizeof(b->facility) - 1] = '\0';
+    strncpy(b->residentID, residentID, sizeof(b->residentID) - 1); b->residentID[sizeof(b->residentID) - 1] = '\0';
+    strncpy(b->residentName, residentName, sizeof(b->residentName) - 1); b->residentName[sizeof(b->residentName) - 1] = '\0';
+    b->startEpoch = start;
+    b->endEpoch = end;
+    b->next = NULL;
+    return b;
 }
 
-void cleanup() {
-    for (int i = 0; i < TABLE_SIZE; i++) {
-        UsageLog* current = residentLogs[i].head;
-        while (current) {
-            UsageLog* temp = current;
-            current = current->next;
-            free(temp);
-        }
-        residentLogs[i].head = NULL;
-        residentLogs[i].count = 0;
-    }
+void registerBooking(Booking* b) {
+    unsigned int idx = hashKey(b->residentID);
+    b->next = residentBuckets[idx];
+    residentBuckets[idx] = b;
+    insertIntoTimeline(findOrCreateTimeline(b->facility), b);
 }
 
-void handleRequest(const char* command, const char* residentID, const char* residentName, 
-    const char* facility, const char* date, const char* time, int duration,
-    const char* searchType, const char* searchValue) {
-        if (strcmp(command, "add") == 0) {
-        int index = hash(residentID);
-        UsageLog* newLog = createLog(date, time, facility, residentID, residentName, duration);
-        if (!newLog) {
-            printf("{\"status\":\"error\",\"message\":\"Invalid log data\"}");
-            return;
-        }
-        
-        newLog->next = residentLogs[index].head;
-        residentLogs[index].head = newLog;
-        residentLogs[index].count++;
-        
-        saveLogs();
-        printf("{\"status\":\"success\",\"message\":\"Usage recorded successfully\"}");
-    }
-    else if (strcmp(command, "get") == 0) {
-        printf("{\"logs\":[");
-        int first = 1;
-        for (int i = 0; i < TABLE_SIZE; i++) {
-            UsageLog* current = residentLogs[i].head;
-            while (current) {
-                if (!first) printf(",");
-                first = 0;
-                printLog(current);
-                current = current->next;
-            }
-        }
-        printf("]}");
-    }
-    else if (strcmp(command, "search") == 0) {
-        searchLogs(searchType, searchValue);
-    }
-    else {
-        printf("{\"status\":\"error\",\"message\":\"Invalid command\"}");
-    }
+void printBookingJson(Booking* b) {
+    printf("{\"facility\":\"%s\",\"residentID\":\"%s\",\"residentName\":\"%s\",\"startTime\":%ld,\"endTime\":%ld}",
+           b->facility, b->residentID, b->residentName, b->startEpoch, b->endEpoch);
 }
-void searchLogs(const char* type, const char* value) {
-    printf("{\"logs\":[");
+
+void printAllJson() {
+    printf("[");
     int first = 1;
-    
     for (int i = 0; i < TABLE_SIZE; i++) {
-        UsageLog* current = residentLogs[i].head;
-        while (current) {
-            int match = 0;
-            
-            if (strcmp(type, "resident") == 0 && strstr(current->residentName, value)) {
-                match = 1;
-            }
-            else if (strcmp(type, "door") == 0 && strstr(current->residentID, value)) {
-                match = 1;
-            }
-            else if (strcmp(type, "facility") == 0 && strstr(current->facility, value)) {
-                match = 1;
-            }
-            else if (strcmp(type, "date") == 0 && strstr(current->date, value)) {
-                match = 1;
-            }
-            
-            if (match) {
-                if (!first) printf(",");
-                first = 0;
-                printLog(current);
-            }
-            current = current->next;
+        Booking* cur = residentBuckets[i];
+        while (cur) {
+            if (!first) printf(","); else first = 0;
+            printBookingJson(cur);
+            cur = cur->next;
         }
     }
-    printf("]}");
+    printf("]");
+}
+
+// Splits on the next literal comma (never skips empty fields, unlike strtok)
+// and strips one pair of surrounding quotes if present. Mutates the buffer.
+char* nextField(char** cursor) {
+    if (!*cursor) return "";
+    char* start = *cursor;
+    char* comma = strchr(start, ',');
+    if (comma) { *comma = '\0'; *cursor = comma + 1; }
+    else { *cursor = NULL; }
+    size_t len = strlen(start);
+    if (len >= 2 && start[0] == '"' && start[len - 1] == '"') {
+        start[len - 1] = '\0';
+        start++;
+    }
+    return start;
+}
+
+// Reads stdin CSV: "facility","residentID","residentName",startEpoch,endEpoch
+void loadFromStdin() {
+    char line[300];
+    while (fgets(line, sizeof(line), stdin)) {
+        line[strcspn(line, "\n")] = '\0';
+        if (line[0] == '\0') continue;
+
+        char* cursor = line;
+        char facility[20], residentID[50], residentName[50];
+        strncpy(facility, nextField(&cursor), sizeof(facility) - 1); facility[sizeof(facility) - 1] = '\0';
+        strncpy(residentID, nextField(&cursor), sizeof(residentID) - 1); residentID[sizeof(residentID) - 1] = '\0';
+        strncpy(residentName, nextField(&cursor), sizeof(residentName) - 1); residentName[sizeof(residentName) - 1] = '\0';
+        long start = atol(nextField(&cursor));
+        long end = atol(nextField(&cursor));
+
+        registerBooking(createBooking(facility, residentID, residentName, start, end));
+    }
+}
+
+void searchJson(const char* type, const char* value) {
+    printf("[");
+    int first = 1;
+    for (int i = 0; i < TABLE_SIZE; i++) {
+        Booking* cur = residentBuckets[i];
+        while (cur) {
+            int match = 0;
+            if (strcmp(type, "resident") == 0 && strstr(cur->residentName, value)) match = 1;
+            else if (strcmp(type, "door") == 0 && strstr(cur->residentID, value)) match = 1;
+            else if (strcmp(type, "facility") == 0 && strstr(cur->facility, value)) match = 1;
+            else if (strcmp(type, "date") == 0) {
+                char dateStr[11];
+                time_t t = (time_t)cur->startEpoch;
+                strftime(dateStr, sizeof(dateStr), "%Y-%m-%d", localtime(&t));
+                if (strstr(dateStr, value)) match = 1;
+            }
+            if (match) {
+                if (!first) printf(","); else first = 0;
+                printBookingJson(cur);
+            }
+            cur = cur->next;
+        }
+    }
+    printf("]");
 }
 
 int main(int argc, char* argv[]) {
-    // Initialize hash tables
-    for (int i = 0; i < TABLE_SIZE; i++) {
-        residentLogs[i].head = NULL;
-        residentLogs[i].count = 0;
-    }
-    
-    // Load existing data
-    loadLogs();
-    
-    if (argc < 2) {
+    loadFromStdin();
+
+    printf("{\"result\":");
+
+    if (argc < 2 || strcmp(argv[1], "list") == 0) {
+        printAllJson();
+    } else if (strcmp(argv[1], "book") == 0 && argc == 7) {
+        const char* facility = argv[2];
+        const char* residentID = argv[3];
+        const char* residentName = argv[4];
+        long start = atol(argv[5]);
+        long end = atol(argv[6]);
+
+        if (end <= start) {
+            printf("{\"status\":\"error\",\"message\":\"End time must be after start time\"}");
+        } else if (hasOverlap(facility, start, end)) {
+            printf("{\"status\":\"error\",\"message\":\"This slot overlaps with an existing booking for %s\"}", facility);
+        } else {
+            registerBooking(createBooking(facility, residentID, residentName, start, end));
+            printf("{\"status\":\"success\",\"message\":\"Booking confirmed\"}");
+        }
+    } else if (strcmp(argv[1], "search") == 0 && argc == 4) {
+        searchJson(argv[2], argv[3]);
+    } else {
         printf("{\"status\":\"error\",\"message\":\"Invalid command\"}");
-        cleanup();
-        return 1;
     }
-    
-    const char* command = argv[1];
-    
-    if (strcmp(command, "add") == 0 && argc == 8) {
-        // Format: add "door" "name" "facility" "date" "time" duration
-        handleRequest(command, argv[2], argv[3], argv[4], argv[5], argv[6], atoi(argv[7]), "", "");
-    }
-    else if (strcmp(command, "get") == 0 && argc == 2) {
-        // Format: get
-        handleRequest(command, "", "", "", "", "", 0, "", "");
-    }
-    else if (strcmp(command, "search") == 0 && argc == 4) {
-        // Format: search "type" "value"
-        handleRequest(command, "", "", "", "", "", 0, argv[2], argv[3]);
-    }
-    else {
-        printf("{\"status\":\"error\",\"message\":\"Invalid arguments\"}");
-        cleanup();
-        return 1;
-    }
-    
-    // Clean up memory
-    cleanup();
+
+    printf(",\"state\":");
+    printAllJson();
+    printf("}");
+
     return 0;
 }

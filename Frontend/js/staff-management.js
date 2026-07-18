@@ -121,10 +121,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function handleDelete() {
-        const name = prompt("Enter staff name to delete:");
+        const name = await promptDialog("Enter staff name to delete:");
         if (!name) return;
 
-        if (!confirm(`Are you sure you want to delete ${name}?`)) return;
+        if (!await confirmDialog(`Are you sure you want to delete ${name}?`)) return;
 
         try {
             const response = await fetch(`${API_BASE}/${encodeURIComponent(name)}`, {
@@ -154,18 +154,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
         data.forEach(staff => {
             const row = attendanceTable.insertRow();
+            const checkIn = staff.checkInTime ? new Date(staff.checkInTime * 1000).toLocaleString() : '-';
+            const checkOut = staff.checkOutTime ? new Date(staff.checkOutTime * 1000).toLocaleString() : '-';
             row.innerHTML = `
                 <td>${staff.name}</td>
-                <td>${staff.checkIn || '-'}</td>
-                <td>${staff.checkOut || '-'}</td>
-                <td>${staff.hours ? staff.hours.toFixed(2) : '-'}</td>
-                <td>$${staff.wage ? staff.wage.toFixed(2) : '0.00'}</td>
-                <td>$${staff.earnings ? staff.earnings.toFixed(2) : '0.00'}</td>
+                <td>${checkIn}</td>
+                <td>${checkOut}</td>
+                <td>${staff.hoursWorked ? staff.hoursWorked.toFixed(2) : '-'}</td>
+                <td>Rs.${staff.wagePerHour ? staff.wagePerHour.toFixed(2) : '0.00'}</td>
+                <td>Rs.${staff.earnings ? staff.earnings.toFixed(2) : '0.00'}</td>
                 <td><button class="btn-delete">Delete</button></td>
             `;
 
-            row.querySelector('.btn-delete').addEventListener('click', () => {
-                if (confirm(`Delete ${staff.name}?`)) {
+            row.querySelector('.btn-delete').addEventListener('click', async () => {
+                if (await confirmDialog(`Delete ${staff.name}?`)) {
                     fetch(`${API_BASE}/${encodeURIComponent(staff.name)}`, {
                         method: 'DELETE'
                     })

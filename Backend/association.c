@@ -1,9 +1,13 @@
+// Association members module: singly linked list. Stateless per-request
+// compute engine — reads current rows as CSV on stdin (no header line, Node
+// controls the exact format on both ends), performs one operation, prints
+// {"result": ..., "state": [...]}. Node computes the next member id (from
+// the current max) before calling "add", so id collisions from
+// user-supplied ids are no longer possible.
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
-#include <ctype.h>
-#include <sys/stat.h> // For directory creation
 
 #define MAX_NAME_LEN 100
 #define MAX_CONTACT_LEN 20
@@ -11,7 +15,6 @@
 #define MAX_ROLE_LEN 50
 #define MAX_DOOR_LEN 20
 #define MAX_MEMBERS 300
-#define CSV_FILE_PATH "data/association_members.csv"
 
 typedef struct MemberNode {
     int memberId;
@@ -26,21 +29,11 @@ typedef struct MemberNode {
 MemberNode *memberList = NULL;
 int memberCount = 0;
 
-// Function to create directory if it doesn't exist
-void createDirectoryIfNotExists(const char *path) {
-    struct stat st = {0};
-    if (stat(path, &st) == -1) {
-        mkdir(path);
-    }
-}
-
 void escapeJsonString(const char *input, FILE *output) {
     while (*input) {
         switch (*input) {
             case '"': fputs("\\\"", output); break;
             case '\\': fputs("\\\\", output); break;
-            case '\b': fputs("\\b", output); break;
-            case '\f': fputs("\\f", output); break;
             case '\n': fputs("\\n", output); break;
             case '\r': fputs("\\r", output); break;
             case '\t': fputs("\\t", output); break;
@@ -50,218 +43,121 @@ void escapeJsonString(const char *input, FILE *output) {
     }
 }
 
-void printSuccess(const char *message) {
-    printf("{\"status\":\"success\",\"message\":\"%s\"}\n", message);
+void printMemberJson(MemberNode *m) {
+    printf("{\"id\":%d,\"name\":\"", m->memberId);
+    escapeJsonString(m->name, stdout);
+    printf("\",\"role\":\"");
+    escapeJsonString(m->role, stdout);
+    printf("\",\"email\":\"");
+    escapeJsonString(m->email, stdout);
+    printf("\",\"phone\":\"");
+    escapeJsonString(m->contact, stdout);
+    printf("\",\"houseNumber\":\"");
+    escapeJsonString(m->doorNumber, stdout);
+    printf("\"}");
 }
 
-void printError(const char *message) {
-    fprintf(stderr, "{\"status\":\"error\",\"message\":\"%s\"}\n", message);
-}
-
-void loadMembers() {
-    createDirectoryIfNotExists("server");
-    createDirectoryIfNotExists("server/data");
-    
-    FILE *file = fopen(CSV_FILE_PATH, "r");
-    if (!file) {
-        file = fopen(CSV_FILE_PATH, "w");
-        if (file) {
-            fprintf(file, "id,name,role,email,phone,doorNumber\n");
-            fclose(file);
-        }
-        return;
-    }
-
-    char line[1024];
-    if (!fgets(line, sizeof(line), file)) {
-        fclose(file);
-        return;
-    }
-
-    MemberNode *tail = NULL;
-    while (fgets(line, sizeof(line), file)) {
-        line[strcspn(line, "\n")] = 0;
-        
-        MemberNode *newNode = (MemberNode *)malloc(sizeof(MemberNode));
-        if (!newNode) {
-            printError("Memory allocation failed");
-            fclose(file);
-            return;
-        }
-
-        char *token = strtok(line, ",");
-        if (!token) {
-            free(newNode);
-            continue;
-        }
-        newNode->memberId = atoi(token);
-
-        token = strtok(NULL, ",");
-        if (!token) {
-            free(newNode);
-            continue;
-        }
-        strncpy(newNode->name, token, MAX_NAME_LEN-1);
-
-        token = strtok(NULL, ",");
-        if (!token) {
-            free(newNode);
-            continue;
-        }
-        strncpy(newNode->role, token, MAX_ROLE_LEN-1);
-
-        token = strtok(NULL, ",");
-        if (!token) {
-            free(newNode);
-            continue;
-        }
-        strncpy(newNode->email, token, MAX_EMAIL_LEN-1);
-
-        token = strtok(NULL, ",");
-        if (!token) {
-            free(newNode);
-            continue;
-        }
-        strncpy(newNode->contact, token, MAX_CONTACT_LEN-1);
-
-        token = strtok(NULL, "\n");
-        if (token) {
-            strncpy(newNode->doorNumber, token, MAX_DOOR_LEN-1);
-        }
-        
-        newNode->next = NULL;
-        
-        if (memberList == NULL) {
-            memberList = newNode;
-            tail = newNode;
-        } else {
-            tail->next = newNode;
-            tail = newNode;
-        }
-        
-        memberCount++;
-        if (memberCount >= MAX_MEMBERS) break;
-    }
-    fclose(file);
-}
-
-void saveMembers() {
-    createDirectoryIfNotExists("server");
-    createDirectoryIfNotExists("server/data");
-    
-    FILE *file = fopen(CSV_FILE_PATH, "w");
-    if (!file) {
-        printError("Failed to open data file for writing");
-        return;
-    }
-
-    fprintf(file, "id,name,role,email,phone,doorNumber\n");
-    MemberNode *current = memberList;
-    while (current != NULL) {
-        fprintf(file, "%d,%s,%s,%s,%s,%s\n",
-                current->memberId,
-                current->name,
-                current->role,
-                current->email,
-                current->contact,
-                current->doorNumber);
-        current = current->next;
-    }
-    fclose(file);
-}
-
-void listMembers() {
+void printAllMembersJson() {
     printf("[");
     MemberNode *current = memberList;
     int first = 1;
     while (current != NULL) {
-        if (!first) printf(",");
-        first = 0;
-        printf("{\"id\":%d,\"name\":\"", current->memberId);
-        escapeJsonString(current->name, stdout);
-        printf("\",\"role\":\"");
-        escapeJsonString(current->role, stdout);
-        printf("\",\"email\":\"");
-        escapeJsonString(current->email, stdout);
-        printf("\",\"phone\":\"");
-        escapeJsonString(current->contact, stdout);
-        printf("\",\"houseNumber\":\"");
-        escapeJsonString(current->doorNumber, stdout);
-        printf("\"}");
+        if (!first) printf(","); else first = 0;
+        printMemberJson(current);
         current = current->next;
     }
-    printf("]\n");
+    printf("]");
 }
 
-void addMember(int id, const char* name, const char* role, const char* email, const char* phone, const char* doorNumber) {
-    // Check if ID already exists
+// Splits on the next literal comma (never skips empty fields, unlike strtok)
+// and strips one pair of surrounding quotes if present. Mutates the buffer.
+char* nextField(char** cursor) {
+    if (!*cursor) return "";
+    char* start = *cursor;
+    char* comma = strchr(start, ',');
+    if (comma) { *comma = '\0'; *cursor = comma + 1; }
+    else { *cursor = NULL; }
+    size_t len = strlen(start);
+    if (len >= 2 && start[0] == '"' && start[len - 1] == '"') {
+        start[len - 1] = '\0';
+        start++;
+    }
+    return start;
+}
+
+// Reads stdin CSV: id,"name","role","email","phone","doorNumber" (no header)
+void loadFromStdin() {
+    char line[1024];
+    while (fgets(line, sizeof(line), stdin)) {
+        line[strcspn(line, "\n")] = 0;
+        if (line[0] == '\0') continue;
+
+        MemberNode *newNode = (MemberNode *)malloc(sizeof(MemberNode));
+        if (!newNode) continue;
+
+        char* cursor = line;
+        newNode->memberId = atoi(nextField(&cursor));
+        strncpy(newNode->name, nextField(&cursor), MAX_NAME_LEN - 1); newNode->name[MAX_NAME_LEN - 1] = '\0';
+        strncpy(newNode->role, nextField(&cursor), MAX_ROLE_LEN - 1); newNode->role[MAX_ROLE_LEN - 1] = '\0';
+        strncpy(newNode->email, nextField(&cursor), MAX_EMAIL_LEN - 1); newNode->email[MAX_EMAIL_LEN - 1] = '\0';
+        strncpy(newNode->contact, nextField(&cursor), MAX_CONTACT_LEN - 1); newNode->contact[MAX_CONTACT_LEN - 1] = '\0';
+        strncpy(newNode->doorNumber, nextField(&cursor), MAX_DOOR_LEN - 1); newNode->doorNumber[MAX_DOOR_LEN - 1] = '\0';
+
+        newNode->next = memberList;
+        memberList = newNode;
+        memberCount++;
+        if (memberCount >= MAX_MEMBERS) break;
+    }
+}
+
+const char* addMember(int id, const char* name, const char* role, const char* email, const char* phone, const char* doorNumber) {
     MemberNode *current = memberList;
     while (current != NULL) {
-        if (current->memberId == id) {
-            printError("Member ID already exists");
-            return;
-        }
+        if (current->memberId == id) return "Member ID already exists";
         current = current->next;
     }
-
-    if (memberCount >= MAX_MEMBERS) {
-        printError("Maximum members reached");
-        return;
-    }
+    if (memberCount >= MAX_MEMBERS) return "Maximum members reached";
 
     MemberNode *newNode = (MemberNode *)malloc(sizeof(MemberNode));
-    if (!newNode) {
-        printError("Memory allocation failed");
-        return;
-    }
+    if (!newNode) return "Memory allocation failed";
 
     newNode->memberId = id;
-    strncpy(newNode->name, name, MAX_NAME_LEN-1);
-    strncpy(newNode->role, role, MAX_ROLE_LEN-1);
-    strncpy(newNode->email, email, MAX_EMAIL_LEN-1);
-    strncpy(newNode->contact, phone, MAX_CONTACT_LEN-1);
-    strncpy(newNode->doorNumber, doorNumber, MAX_DOOR_LEN-1);
-    
-    // Add to beginning of list
+    strncpy(newNode->name, name, MAX_NAME_LEN - 1); newNode->name[MAX_NAME_LEN - 1] = '\0';
+    strncpy(newNode->role, role, MAX_ROLE_LEN - 1); newNode->role[MAX_ROLE_LEN - 1] = '\0';
+    strncpy(newNode->email, email, MAX_EMAIL_LEN - 1); newNode->email[MAX_EMAIL_LEN - 1] = '\0';
+    strncpy(newNode->contact, phone, MAX_CONTACT_LEN - 1); newNode->contact[MAX_CONTACT_LEN - 1] = '\0';
+    strncpy(newNode->doorNumber, doorNumber, MAX_DOOR_LEN - 1); newNode->doorNumber[MAX_DOOR_LEN - 1] = '\0';
+
     newNode->next = memberList;
     memberList = newNode;
-    
     memberCount++;
-    saveMembers();
-    printSuccess("Member added successfully");
+    return NULL;
 }
 
-void deleteMember(int id) {
+const char* deleteMember(int id) {
     MemberNode *current = memberList;
     MemberNode *prev = NULL;
-    
     while (current != NULL) {
         if (current->memberId == id) {
-            if (prev == NULL) {
-                memberList = current->next;
-            } else {
-                prev->next = current->next;
-            }
+            if (prev == NULL) memberList = current->next;
+            else prev->next = current->next;
             free(current);
             memberCount--;
-            saveMembers();
-            printSuccess("Member deleted successfully");
-            return;
+            return NULL;
         }
         prev = current;
         current = current->next;
     }
-    printError("Member not found");
+    return "Member not found";
 }
 
 void searchMembers(const char* type, const char* query) {
     printf("[");
     int count = 0;
     MemberNode *current = memberList;
-    
+
     while (current != NULL) {
         bool match = false;
-        
         if (strcmp(type, "name") == 0) {
             match = strstr(current->name, query) != NULL;
         } else if (strcmp(type, "id") == 0) {
@@ -273,24 +169,14 @@ void searchMembers(const char* type, const char* query) {
         } else if (strcmp(type, "house") == 0) {
             match = strstr(current->doorNumber, query) != NULL;
         }
-        
+
         if (match) {
             if (count++ > 0) printf(",");
-            printf("{\"id\":%d,\"name\":\"", current->memberId);
-            escapeJsonString(current->name, stdout);
-            printf("\",\"role\":\"");
-            escapeJsonString(current->role, stdout);
-            printf("\",\"email\":\"");
-            escapeJsonString(current->email, stdout);
-            printf("\",\"phone\":\"");
-            escapeJsonString(current->contact, stdout);
-            printf("\",\"houseNumber\":\"");
-            escapeJsonString(current->doorNumber, stdout);
-            printf("\"}");
+            printMemberJson(current);
         }
         current = current->next;
     }
-    printf("]\n");
+    printf("]");
 }
 
 void freeMemberList() {
@@ -305,30 +191,30 @@ void freeMemberList() {
 }
 
 int main(int argc, char *argv[]) {
-    loadMembers();
-    
-    if (argc < 2) {
-        listMembers();
-        freeMemberList();
-        return 0;
-    }
-    
-    if (strcmp(argv[1], "add") == 0 && argc == 8) {
-        addMember(atoi(argv[2]), argv[3], argv[4], argv[5], argv[6], argv[7]);
-    } 
-    else if (strcmp(argv[1], "delete") == 0 && argc == 3) {
-        deleteMember(atoi(argv[2]));
-    }
-    else if (strcmp(argv[1], "search") == 0 && argc == 4) {
+    loadFromStdin();
+
+    printf("{\"result\":");
+
+    if (argc < 2 || strcmp(argv[1], "list") == 0) {
+        printAllMembersJson();
+    } else if (strcmp(argv[1], "add") == 0 && argc == 8) {
+        const char* err = addMember(atoi(argv[2]), argv[3], argv[4], argv[5], argv[6], argv[7]);
+        if (err) printf("{\"status\":\"error\",\"message\":\"%s\"}", err);
+        else printf("{\"status\":\"success\",\"message\":\"Member added successfully\"}");
+    } else if (strcmp(argv[1], "delete") == 0 && argc == 3) {
+        const char* err = deleteMember(atoi(argv[2]));
+        if (err) printf("{\"status\":\"error\",\"message\":\"%s\"}", err);
+        else printf("{\"status\":\"success\",\"message\":\"Member deleted successfully\"}");
+    } else if (strcmp(argv[1], "search") == 0 && argc == 4) {
         searchMembers(argv[2], argv[3]);
+    } else {
+        printf("{\"status\":\"error\",\"message\":\"Invalid command\"}");
     }
-    else if (strcmp(argv[1], "list") == 0) {
-        listMembers();
-    }
-    else {
-        printError("Invalid command");
-    }
-    
+
+    printf(",\"state\":");
+    printAllMembersJson();
+    printf("}");
+
     freeMemberList();
     return 0;
 }
