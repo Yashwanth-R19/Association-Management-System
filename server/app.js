@@ -32,7 +32,9 @@ app.use('/api/dues', require('./routes/dues'));
 const publicPaths = [
     '/',
     '/login.html',
+    '/signup.html',
     '/api/login',
+    '/api/signup',
     '/api/check-auth',
     '/css/styles.css',
     '/js/login.js'
@@ -62,6 +64,10 @@ app.get('/', (req, res) => {
 
 app.get('/login.html', (req, res) => {
     res.sendFile(path.join(__dirname, '../Frontend/login.html'));
+});
+
+app.get('/signup.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../Frontend/signup.html'));
 });
 
 

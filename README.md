@@ -168,8 +168,13 @@ id anywhere, by design.
   check-in/out history, 6 meetings, 7 facility bookings, 6 complaints across every priority, 5
   notices, and 3 months of dues for 20 residents. Every row satisfies the same validators the live
   API enforces.
-- `npm run create-user -- --username <name> --password <pw> --role <admin|secretary>` — the only
-  way to create a login; there is no self-service signup.
+- `npm run create-user -- --username <name> --password <pw> --role <admin|secretary>` — bootstraps
+  a login from the command line (handy for the first account or scripted setup).
+
+Accounts can also be created through the app itself: the **Sign in** page links to a **Create
+account** page (`signup.html` → `POST /api/signup`) where anyone can register a username, password,
+and role (Admin or Secretary) and is signed straight in. Signup is deliberately open — there's no
+invite/approval gating — and both roles can use every feature.
 
 ## Running tests
 

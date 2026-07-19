@@ -735,6 +735,9 @@ body.auth::after {
 .auth-toggle { position: absolute; top: 20px; right: 20px; }
 .show-password { display: flex; align-items: center; gap: 8px; margin: -4px 0 16px; font-size: 0.84rem; color: var(--ink-2); cursor: pointer; }
 .show-password input { accent-color: var(--accent); width: 15px; height: 15px; }
+.auth-alt { margin-top: 18px; text-align: center; font-size: 0.85rem; color: var(--ink-3); }
+.auth-alt a { color: var(--accent); font-weight: 500; text-decoration: none; }
+.auth-alt a:hover { text-decoration: underline; }
 
 /* ============================================================================
    Keyframes

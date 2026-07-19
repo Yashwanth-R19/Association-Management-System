@@ -11,7 +11,7 @@
     </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Sign in - Ceebros Gardens</title>
+    <title>Create account - Ceebros Gardens</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&display=swap" rel="stylesheet">
@@ -31,34 +31,49 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6"/></svg>
             </span>
             <h1>Ceebros Gardens</h1>
-            <p>Association management portal</p>
+            <p>Create your account</p>
         </div>
 
-        <form id="loginForm">
+        <form id="signupForm">
             <div class="form-group">
                 <label for="name">Username</label>
-                <input type="text" id="name" class="form-control" autocomplete="username" required />
+                <input type="text" id="name" class="form-control" autocomplete="username" minlength="3" maxlength="30" required />
+                <small class="form-text">3-30 characters: letters, numbers, and . _ -</small>
+            </div>
+            <div class="form-group">
+                <label for="role">Role</label>
+                <select id="role" class="form-control" required>
+                    <option value="admin">Admin</option>
+                    <option value="secretary">Secretary</option>
+                </select>
             </div>
             <div class="form-group">
                 <label for="password">Password</label>
-                <input type="password" id="password" class="form-control" autocomplete="current-password" required />
+                <input type="password" id="password" class="form-control" autocomplete="new-password" minlength="8" required />
+                <small class="form-text">At least 8 characters</small>
+            </div>
+            <div class="form-group">
+                <label for="confirmPassword">Confirm Password</label>
+                <input type="password" id="confirmPassword" class="form-control" autocomplete="new-password" minlength="8" required />
             </div>
             <label class="show-password" for="togglePassword">
                 <input type="checkbox" id="togglePassword" />
                 Show password
             </label>
-            <button type="submit" class="btn btn-primary btn-block">Sign in</button>
+            <button type="submit" class="btn btn-primary btn-block">Create account</button>
         </form>
 
-        <p class="auth-alt">Don't have an account? <a href="signup.html">Create one</a></p>
+        <p class="auth-alt">Already have an account? <a href="login.html">Sign in</a></p>
     </main>
 
     <script src="js/main.js"></script>
     <script src="js/ui.js"></script>
-    <script src="js/login.js"></script>
+    <script src="js/signup.js"></script>
     <script>
         document.getElementById('togglePassword').addEventListener('change', function () {
-            document.getElementById('password').type = this.checked ? 'text' : 'password';
+            var type = this.checked ? 'text' : 'password';
+            document.getElementById('password').type = type;
+            document.getElementById('confirmPassword').type = type;
         });
         document.getElementById('authThemeToggle').addEventListener('click', function () {
             var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
