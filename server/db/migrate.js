@@ -4,7 +4,11 @@ const pool = require('./pool');
 
 const MIGRATIONS_DIR = path.join(__dirname, 'migrations');
 
-async function migrate() {
+// Applies any pending migrations using the shared pool. Idempotent — already-applied
+// files are tracked in schema_migrations and skipped, so this is safe to run on every
+// server boot. Does NOT close the pool (the caller owns its lifecycle); the CLI wrapper
+// below closes it only when this file is run directly.
+async function runMigrations() {
     const client = await pool.connect();
     try {
         await client.query(`
@@ -42,11 +46,17 @@ async function migrate() {
         console.log('All migrations applied.');
     } finally {
         client.release();
-        await pool.end();
     }
 }
 
-migrate().catch(err => {
-    console.error(err);
-    process.exit(1);
-});
+module.exports = { runMigrations };
+
+// CLI entrypoint: `npm run migrate` / `node server/db/migrate.js`.
+if (require.main === module) {
+    runMigrations()
+        .then(() => pool.end())
+        .catch(err => {
+            console.error(err);
+            process.exit(1);
+        });
+}

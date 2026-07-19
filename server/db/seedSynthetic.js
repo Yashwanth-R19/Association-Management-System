@@ -243,7 +243,7 @@ async function seedDues(client, residents) {
     console.log(`maintenance_dues: inserted ${count}`);
 }
 
-async function seed() {
+async function seedSynthetic() {
     const client = await pool.connect();
     try {
         const residents = await seedResidents(client);
@@ -257,11 +257,29 @@ async function seed() {
         await seedDues(client, residents);
     } finally {
         client.release();
-        await pool.end();
     }
 }
 
-seed().catch(err => {
-    console.error(err);
-    process.exit(1);
-});
+// Seeds only when the residents table is empty, so it's safe to call on every boot
+// (the synthetic rows have unique keys and would error on a second insert otherwise).
+// Used by the optional SEED_ON_START auto-seed path in app.js.
+async function seedIfEmpty() {
+    const { rows } = await pool.query('SELECT 1 FROM residents LIMIT 1');
+    if (rows.length > 0) {
+        console.log('[seed] residents already present — skipping synthetic seed.');
+        return;
+    }
+    await seedSynthetic();
+}
+
+module.exports = { seedSynthetic, seedIfEmpty };
+
+// CLI entrypoint: `npm run seed` / `node server/db/seedSynthetic.js`.
+if (require.main === module) {
+    seedSynthetic()
+        .then(() => pool.end())
+        .catch(err => {
+            console.error(err);
+            process.exit(1);
+        });
+}

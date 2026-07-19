@@ -100,10 +100,34 @@ app.use((err, req, res, next) => {
 // requiring it as a module (e.g. from supertest in tests) just gets the app.
 if (require.main === module) {
     const PORT = process.env.PORT || 3000;
-    app.listen(PORT, () => {
-        console.log(`Server running on port ${PORT}`);
-        console.log(`Access the site at: http://localhost:${PORT}`);
-    });
+
+    // Auto-apply pending migrations on boot so the app is self-initializing —
+    // no separate `npm run migrate` shell step needed. Essential for hosts
+    // whose free tier has no shell (e.g. Render free). Idempotent: already-
+    // applied migrations are skipped. If it fails we still start the server so
+    // the failure is visible in logs rather than crash-looping silently.
+    const { runMigrations } = require('./db/migrate');
+
+    async function initAndStart() {
+        try {
+            await runMigrations();
+            // Optional one-time demo data — set SEED_ON_START=true to populate an
+            // empty database on boot (useful on hosts with no shell). Skips itself
+            // once residents exist, so it never duplicates or overwrites real data.
+            if (process.env.SEED_ON_START === 'true') {
+                const { seedIfEmpty } = require('./db/seedSynthetic');
+                await seedIfEmpty();
+            }
+        } catch (err) {
+            console.error('[startup] database init failed:', err.message);
+        }
+        app.listen(PORT, () => {
+            console.log(`Server running on port ${PORT}`);
+            console.log(`Access the site at: http://localhost:${PORT}`);
+        });
+    }
+
+    initAndStart();
 }
 
 module.exports = app;

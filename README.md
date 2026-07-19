@@ -113,17 +113,22 @@ cp .env.example .env   # only JWT_SECRET matters here — docker-compose sets DA
 docker compose up -d --build
 ```
 
-Then, one-time setup (each command run **separately** — chaining with `&&` on the host shell only
-sends the first command into the container):
+The app is now at **http://localhost:3000**. Migrations run automatically on startup, so the
+schema is ready as soon as it boots — just open the site and **create an account on the signup
+page**.
+
+To load the synthetic demo data (residents, vendors, etc.), either set `SEED_ON_START=true` before
+the first `docker compose up`, or run it once (each command **separately** — chaining with `&&` on
+the host shell only sends the first command into the container):
 
 ```bash
-docker compose exec app npm run migrate
-docker compose exec app npm run db:reset
 docker compose exec app npm run seed
-docker compose exec app npm run create-user -- --username admin --password <your-password> --role admin
 ```
 
-The app is now at **http://localhost:3000**. Log in with the account you just created.
+The other maintenance scripts are still available the same way if you want them —
+`docker compose exec app npm run db:reset` to wipe all data, or
+`docker compose exec app npm run create-user -- --username admin --password <pw> --role admin` to
+bootstrap an account from the CLI instead of the signup page.
 
 ### Option B — Local/native
 
@@ -218,20 +223,25 @@ General steps (the same on any of the three):
    - `DATABASE_SSL` → leave unset (managed Postgres providers require SSL)
    - `JWT_SECRET` → a real random value (`node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`)
    - `NODE_ENV` → `production`
-4. **Run one-off release commands** after the first deploy (most platforms have a "run command"
-   or "one-off job" feature — use it, don't build this into the container's start command):
-   ```bash
-   npm run migrate
-   npm run seed              # optional — synthetic demo data
-   npm run create-user -- --username admin --password <a-real-password> --role admin
-   ```
-5. **Confirm it actually works** — log in at the deployed URL and click through a few pages
-   before considering the deploy done.
+   - `SEED_ON_START` → optional; set to `true` to load the synthetic demo data once, on the first
+     boot with an empty database (it skips itself once residents exist). Handy on hosts whose free
+     tier has no shell.
+4. **No manual migration step needed** — the app runs its own pending migrations automatically on
+   startup, so the schema is created on the first boot with no shell required. The **first account
+   is created through the app's own signup page** (`/signup.html`), so `create-user` is only needed
+   if you specifically want a CLI-scripted account. If your host *does* give you a shell and you'd
+   rather run things by hand, `npm run migrate`, `npm run seed`, and
+   `npm run create-user -- --username admin --password <pw> --role admin` all still work.
+5. **Confirm it actually works** — open the deployed URL, create an account on the signup page, and
+   click through a few pages before considering the deploy done.
 
 Platform-specific notes:
-- **Render**: "New → Web Service", connect the repo, set the Dockerfile path to
-  `docker/Dockerfile`, add a managed Postgres instance from the Render dashboard, run the release
-  commands from the service's Shell tab.
+- **Render** (works on the free tier — no shell required): "New → Web Service", connect the repo,
+  set the Dockerfile path to `docker/Dockerfile`, add a PostgreSQL instance from the Render
+  dashboard, and set the env vars above (leave `DATABASE_SSL` unset). Migrations run on boot; make
+  your first account on the signup page. Set `SEED_ON_START=true` if you want the demo data.
+  Note: Render free web services sleep after ~15 min idle and cold-start on the next request (the
+  first load after a nap is slow, then normal), and free Postgres instances are time-limited.
 - **Railway**: "New Project → Deploy from GitHub repo", add a Postgres plugin, set the Dockerfile
   path in service settings, run release commands via `railway run <command>` or the web shell.
 - **Fly.io**: `fly launch` (it will detect `docker/Dockerfile`), `fly postgres create` for the
