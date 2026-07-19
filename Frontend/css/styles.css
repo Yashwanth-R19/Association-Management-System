@@ -149,6 +149,7 @@ button { font-family: inherit; }
     grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
     min-height: 100vh;
 }
+.scrim { display: none; }
 
 /* ---- Sidebar ------------------------------------------------------------- */
 .sidebar {
@@ -265,7 +266,7 @@ button { font-family: inherit; }
     color: var(--on-accent); font-weight: 700; font-size: 0.8rem;
     box-shadow: var(--hi);
 }
-.user-chip .u-meta { min-width: 0; line-height: 1.2; }
+.user-chip .u-meta { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
 .user-chip .u-name { font-size: 0.86rem; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .user-chip .u-role { font-size: 0.7rem; color: var(--ink-3); }
 
@@ -281,12 +282,13 @@ button { font-family: inherit; }
 .side-btn svg { width: 15px; height: 15px; }
 .side-btn:hover { color: var(--ink); border-color: var(--ink-3); transform: translateY(-1px); }
 
-/* Theme toggle (animated sun/moon) */
-.theme-toggle { position: relative; overflow: hidden; }
+/* Theme toggle (animated sun/moon sharing one slot) */
+.theme-toggle .t-icons { position: relative; display: inline-block; width: 15px; height: 15px; flex: none; overflow: hidden; }
 .theme-toggle .t-sun, .theme-toggle .t-moon {
-    display: inline-flex; transition: transform 0.5s var(--ease-out), opacity 0.4s;
+    position: absolute; inset: 0; display: inline-flex;
+    transition: transform 0.5s var(--ease-out), opacity 0.4s;
 }
-.theme-toggle .t-moon { position: absolute; }
+.theme-toggle .t-sun svg, .theme-toggle .t-moon svg { width: 15px; height: 15px; }
 [data-theme="light"] .theme-toggle .t-moon { transform: translateY(150%) rotate(-40deg); opacity: 0; }
 [data-theme="dark"]  .theme-toggle .t-sun  { transform: translateY(-150%) rotate(40deg); opacity: 0; }
 
@@ -759,7 +761,7 @@ body.auth::after {
         box-shadow: var(--shadow-lg);
     }
     body.nav-open .sidebar { transform: none; }
-    .scrim { position: fixed; inset: 0; z-index: 39; background: rgba(20,18,14,0.4); opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+    .scrim { display: block; position: fixed; inset: 0; z-index: 39; background: rgba(20,18,14,0.4); opacity: 0; pointer-events: none; transition: opacity 0.3s; }
     body.nav-open .scrim { opacity: 1; pointer-events: auto; }
     .hamburger { display: inline-flex; }
     .home-cols { grid-template-columns: 1fr; }

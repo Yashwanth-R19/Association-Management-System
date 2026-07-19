@@ -1,45 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <script>window.location.href = 'login.html';</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ceebros Gardens - Management Portal</title>
-    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
-    <link href="css/styles.css" rel="stylesheet">
+    <title>Ceebros Gardens</title>
+    <script>
+        // Route to Home if already signed in, otherwise to Login.
+        fetch('/api/check-auth')
+            .then(function (r) { return r.json(); })
+            .then(function (d) { window.location.replace(d && d.authenticated ? 'home.html' : 'login.html'); })
+            .catch(function () { window.location.replace('login.html'); });
+    </script>
 </head>
-<body>
-    <header>
-        <div class="header-content">
-            <div class="branding">
-                <h1>Ceebros<span>Gardens</span></h1>
-                <p class="tagline">Association Management System</p>
-            </div>
-            <nav>
-                <ul>
-                    <li><a href="login.html">Login</a></li>
-                    <li><a href="residents.html">Residents</a></li>
-                    <li><a href="association.html">Association</a></li>
-                    <li><a href="meetings.html">Meetings</a></li>
-                    <li><a href="facility-tracking.html">Facilities</a></li>
-                    <li><a href="vendor-management.html">Vendors</a></li>
-                    <li><a href="staff-management.html">Staff</a></li>
-                    <li><a href="complaints.html">Complaints</a></li>
-                    <li><a href="notices.html">Notices</a></li>
-                    <li><a href="dues.html">Dues</a></li>
-                    <li class="user-menu">
-                        <a href="profile.html" class="user-link">
-                            <span class="user-name" id="navUserName">Admin</span>
-                            <i class="user-icon"></i>
-                        </a>
-                    </li>
-                    <li><a href="#" id="navLogoutLink">Log out</a></li>
-                </ul>
-            </nav>
-        </div>
-    </header>
-    
-    <script src="js/main.js"></script>
-    <script src="js/nav.js"></script>
-</body>
+<body></body>
 </html>

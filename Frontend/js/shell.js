@@ -86,8 +86,8 @@
             '</a>' +
             '<div class="side-actions">' +
                 '<button type="button" class="side-btn theme-toggle" id="themeToggle" aria-label="Toggle theme">' +
-                    '<span class="t-sun">' + svg('sun') + '</span>' +
-                    '<span class="t-moon">' + svg('moon') + '</span>' +
+                    '<span class="t-icons"><span class="t-sun">' + svg('sun') + '</span>' +
+                    '<span class="t-moon">' + svg('moon') + '</span></span>' +
                     '<span class="t-text">Theme</span>' +
                 '</button>' +
                 '<a class="side-btn" href="#" id="navLogoutLink">' + svg('logout') + '<span>Log out</span></a>' +

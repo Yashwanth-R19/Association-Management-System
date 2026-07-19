@@ -24,7 +24,7 @@ exports.handleLogin = async (req, res) => {
             success: true,
             username: user.username,
             role: user.role,
-            redirect: '/residents.html'
+            redirect: '/home.html'
         });
     } catch (err) {
         console.error('[login] error:', err);

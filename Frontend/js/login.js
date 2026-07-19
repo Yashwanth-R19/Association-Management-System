@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (data.success) {
                     sessionStorage.setItem('isAuthenticated', 'true');
                     sessionStorage.setItem('username', data.username);
-                    window.location.href = data.redirect || '/residents.html';
+                    window.location.href = data.redirect || '/home.html';
                 } else {
                     showToast(data.message || 'Login failed', 'error');
                 }
@@ -43,7 +43,7 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .then(data => {
             if (data.authenticated && window.location.pathname.endsWith('login.html')) {
-                window.location.href = '/residents.html';
+                window.location.href = '/home.html';
             }
         });
 });
